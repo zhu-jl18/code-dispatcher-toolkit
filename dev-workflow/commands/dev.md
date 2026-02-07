@@ -40,7 +40,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
     - `codex` - Stable, high quality, best cost-performance (default for most tasks)
     - `claude` - Fast, lightweight (for quick fixes and config changes)
     - `gemini` - UI/UX specialist (for frontend styling and components)
-    - `ampcode` - Plan review, code review, and difficult bug retry
+    - `ampcode` - Additional backend (Amp CLI)
   - Store the selected backends as `allowed_backends` set for routing in Step 4
   - Special rule: if user selects ONLY `codex`, then ALL subsequent tasks (including UI/quick-fix/review) MUST use `codex` (no exceptions)
   - Guidance: If the request involves non-trivial logic or multi-file refactors, strongly recommend enabling at least `codex` or `claude`.

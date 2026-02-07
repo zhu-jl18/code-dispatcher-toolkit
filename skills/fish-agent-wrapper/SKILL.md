@@ -45,7 +45,7 @@ fish-agent-wrapper --backend ampcode "simple task" [working_dir]
 | codex | `--backend codex` | OpenAI Codex (default) | Code analysis, complex development |
 | claude | `--backend claude` | Anthropic Claude | Quick fixes, documentation, prompts |
 | gemini | `--backend gemini` | Google Gemini | UI/UX prototyping |
-| ampcode | `--backend ampcode` | Sourcegraph Amp CLI | Plan review, code review, unresolved bug retry |
+| ampcode | `--backend ampcode` | Amp CLI backend | Review tasks |
 
 ### Backend Selection Guide
 
@@ -68,14 +68,12 @@ fish-agent-wrapper --backend ampcode "simple task" [working_dir]
 - Example: "Create a responsive dashboard layout with sidebar navigation and data visualization cards"
 
 **Ampcode**:
-- Plan review and code review tasks
-- Retry path for unresolved bugs after normal loops
-- Risk analysis and patch suggestions
-- Example: "Review @.claude/specs/auth/dev-plan.md and list high-risk items with fixes"
+- Standard backend option for tasks that specify `--backend ampcode`
+- Example: "Review @.claude/specs/auth/dev-plan.md"
 
 **Backend Switching**:
 - Start with Codex for analysis, switch to Claude for documentation, then Gemini for UI implementation
-- Add Ampcode tasks when review/retry is needed in parallel mode
+- Use per-task backend selection in parallel mode to optimize for each task's strengths
 
 ## Parameters
 

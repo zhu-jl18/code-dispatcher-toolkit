@@ -32,7 +32,7 @@ Done (generate summary)
   - `codex` - Stable, high quality, best cost-performance (default for most tasks)
   - `claude` - Fast, lightweight (for quick fixes and config changes)
   - `gemini` - UI/UX specialist (for frontend styling and components)
-  - `ampcode` - Plan review, code review, and difficult bug retry
+  - `ampcode` - Additional backend (Amp CLI)
 - If user selects ONLY `codex`, ALL subsequent tasks must use `codex` (including UI/quick-fix/review)
 
 ### 1. Clarify Requirements
