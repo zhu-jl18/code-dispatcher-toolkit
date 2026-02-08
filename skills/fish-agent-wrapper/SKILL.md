@@ -162,6 +162,11 @@ Resume mode relies on backend session context.
 - Do not append `[working_dir]` in resume commands.
 - If you need a different directory, start a new session instead of resume.
 
+Gemini session id best practice:
+- Gemini CLI accepts `--resume <number>`, `--resume <uuid>`, and `--resume latest`.
+- When session list comes from Gemini TUI/CLI indexes, prefer passing the numeric index directly (example: `resume 5`) to avoid UUID transcription mistakes.
+- If you pass a UUID, ensure it is the complete UUID exactly as shown by `gemini --list-sessions`.
+
 ## Parallel Execution
 
 Parallel mode uses a dependency DAG scheduler.
