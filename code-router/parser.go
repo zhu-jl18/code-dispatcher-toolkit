@@ -152,10 +152,16 @@ func parseJSONStreamInternalWithOptions(r io.Reader, warnFn func(string), infoFn
 			break
 		}
 
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
+		rawLine := line
+		trimmedLine := bytes.TrimSpace(line)
+		if len(trimmedLine) == 0 {
+			if opts.allowPlainTextFallback {
+				plainTextBuf.Write(rawLine)
+				plainTextBuf.WriteString("\n")
+			}
 			continue
 		}
+		line = trimmedLine
 		totalEvents++
 
 		if tooLong {
@@ -167,7 +173,7 @@ func parseJSONStreamInternalWithOptions(r io.Reader, warnFn func(string), infoFn
 		var event UnifiedEvent
 		if err := json.Unmarshal(line, &event); err != nil {
 			if opts.allowPlainTextFallback {
-				plainTextBuf.Write(line)
+				plainTextBuf.Write(rawLine)
 				plainTextBuf.WriteString("\n")
 				continue
 			}

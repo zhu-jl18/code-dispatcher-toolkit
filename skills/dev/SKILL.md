@@ -154,7 +154,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
       - `ui` → `gemini` (enforced when allowed)
       - `quick-fix` → `claude`
       - `docs` → `copilot`
-    - If user selected `仅 codex`: all tasks MUST use `codex`
+    - If user selected ONLY `codex`: all tasks MUST use `codex`
     - If task type is `default|ui|quick-fix`, fallback priority is `codex` → `claude` → `gemini` (copilot is excluded)
     - If task type is `docs`, fallback priority is `copilot` → `claude` → `codex` → `gemini`
   - Build ONE `--parallel` config that includes all tasks in `dev-plan.md` and submit it once via a shell/terminal:

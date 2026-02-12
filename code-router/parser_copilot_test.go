@@ -21,6 +21,23 @@ func TestParseBackendStreamWithWarn_CopilotPlainTextFallback(t *testing.T) {
 	}
 }
 
+func TestParseBackendStreamWithWarn_CopilotFallbackPreservesWhitespaceAndBlankLines(t *testing.T) {
+	var warnings []string
+	warnFn := func(msg string) { warnings = append(warnings, msg) }
+
+	input := "  line-1\n\n\tline-2  \n"
+	message, threadID := parseBackendStreamWithWarn(strings.NewReader(input), "copilot", warnFn)
+	if message != input {
+		t.Fatalf("message=%q, want %q", message, input)
+	}
+	if threadID != "" {
+		t.Fatalf("threadID=%q, want empty", threadID)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("warnings=%v, want none", warnings)
+	}
+}
+
 func TestParseBackendStreamWithWarn_NonCopilotNoPlainTextFallback(t *testing.T) {
 	var warnings []string
 	warnFn := func(msg string) { warnings = append(warnings, msg) }

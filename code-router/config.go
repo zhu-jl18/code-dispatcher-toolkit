@@ -272,7 +272,7 @@ func parseArgs() (*Config, error) {
 		return nil, fmt.Errorf("task required")
 	}
 	if !backendSpecified {
-		return nil, fmt.Errorf("--backend is required (supported: codex, claude, copilot, gemini)")
+		return nil, fmt.Errorf("--backend is required (supported: codex, claude, gemini, copilot)")
 	}
 	args = filtered
 
