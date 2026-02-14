@@ -50,7 +50,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
   - Iterate 2-3 rounds until clear; rely on judgment; keep questions concise
   - After clarification complete: MUST use TodoWrite to create task tracking list with workflow steps
 
-- **Step 2: code-dispatcher Deep Analysis (Plan Mode Style) [USE FISH-AGENT-WRAPPER ONLY]**
+- **Step 2: code-dispatcher Deep Analysis (Plan Mode Style) [USE CODE-DISPATCHER ONLY]**
 
   MUST use Bash tool to invoke `code-dispatcher` for deep analysis. Do NOT use Read/Glob/Grep tools directly - delegate all exploration to code-dispatcher.
 
@@ -138,7 +138,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
     - Options: "Confirm and execute" / "Need adjustments"
   - If user chooses "Need adjustments", return to Step 1 or Step 2 based on feedback
 
-- **Step 4: Parallel Development Execution [FISH-AGENT-WRAPPER ONLY - NO DIRECT EDITS]**
+- **Step 4: Parallel Development Execution [CODE-DISPATCHER ONLY - NO DIRECT EDITS]**
   - MUST use Bash tool to invoke `code-dispatcher --parallel --backend <backend>` for ALL code changes
   - NEVER use Edit, Write, MultiEdit, or Task tools to modify code directly
   - Backend routing (must be deterministic and enforceable):
@@ -151,7 +151,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
     - Otherwise, if preferred backend is not in `allowed_backends`, fallback to the first available backend by priority: `codex` → `claude` → `gemini`
   - Build ONE `--parallel` config that includes all tasks in `dev-plan.md` and submit it once via Bash tool:
     ```bash
-    # One shot submission - wrapper handles topology + concurrency
+    # One shot submission - dispatcher handles topology + concurrency
     code-dispatcher --parallel --backend [analysis_backend] <<'EOF'
     ---TASK---
     id: [task-id-1]

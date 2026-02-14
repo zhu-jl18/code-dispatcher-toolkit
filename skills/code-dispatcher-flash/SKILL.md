@@ -61,7 +61,7 @@ code-dispatcher --cleanup          # Remove orphaned log files from temp dir
 
 ### Positional Arguments
 
-- `task`: Task text or `-` for stdin. Backend-native `@file` references work inside task text (handled by backends, not wrapper).
+- `task`: Task text or `-` for stdin. Backend-native `@file` references work inside task text (handled by backends, not dispatcher).
 - `working_dir` (optional): Working directory. Default: current directory. Not valid with `--parallel` (use per-task `workdir` instead).
 
 ### Parallel Task Metadata Fields
@@ -86,7 +86,7 @@ Agent response text...
 SESSION_ID: <uuid>
 ```
 
-Use the wrapper-returned `SESSION_ID` as the source of truth for follow-up resume commands.
+Use the dispatcher-returned `SESSION_ID` as the source of truth for follow-up resume commands.
 
 Parallel mode: Structured execution report (summary mode) or full per-task messages (`--full-output`).
 
@@ -174,10 +174,10 @@ Kill/terminate is allowed **only when the user explicitly requests it**. Do not 
 
 3. **Cleanup only descendants of target code-dispatcher PID:**
    ```bash
-   WRAPPER_PID=$(pgrep -n -f '(^|/)code-dispatcher( |$)')
-   pkill -TERM -P "$WRAPPER_PID" 2>/dev/null || true
+   DISPATCHER_PID=$(pgrep -n -f '(^|/)code-dispatcher( |$)')
+   pkill -TERM -P "$DISPATCHER_PID" 2>/dev/null || true
    sleep 2
-   pkill -KILL -P "$WRAPPER_PID" 2>/dev/null || true
+   pkill -KILL -P "$DISPATCHER_PID" 2>/dev/null || true
    ```
 
 4. **Post-check:**

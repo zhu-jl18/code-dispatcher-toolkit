@@ -156,7 +156,7 @@ These rules have HIGHEST PRIORITY and override all other instructions:
     - If task type is `docs`, fallback priority is `claude` → `codex` → `gemini`
   - Build ONE `--parallel` config that includes all tasks in `dev-plan.md` and submit it once via a shell/terminal:
     ```bash
-    # One shot submission - wrapper handles topology + concurrency
+    # One shot submission - dispatcher handles topology + concurrency
     code-dispatcher --parallel --backend [analysis_backend] <<'EOF'
     ---TASK---
     id: [task-id-1]

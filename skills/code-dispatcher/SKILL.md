@@ -53,7 +53,7 @@ code-dispatcher --backend gemini "simple task" [working_dir]
 - `task` (required)
   - Task description for the backend.
   - Supports inline text or stdin marker `-`.
-  - Supports `@file` references (backend-native feature, not processed by wrapper).
+  - Supports `@file` references (backend-native feature, not processed by dispatcher).
 
 - `working_dir` (optional)
   - Working directory for new task execution.
@@ -65,7 +65,7 @@ code-dispatcher --backend gemini "simple task" [working_dir]
   - **Summary (default)**: Structured report with changes, output, verification, and review summary.
   - **Full (`--full-output`)**: Complete task messages. Use only when debugging specific failures.
   - Scope: `--full-output` is valid only with `--parallel`; single-task mode does not support this flag.
-  - Backend behavior: mode selection is wrapper-level and works the same for `codex | claude | gemini`.
+  - Backend behavior: mode selection is dispatcher-level and works the same for `codex | claude | gemini`.
 
 ## Return Format:
 
@@ -149,7 +149,7 @@ Resume mode relies on backend session context.
 - If you need a different directory, start a new session instead of resume.
 
  Resume identifier contract:
-- Use the wrapper-returned `SESSION_ID` as the source of truth for follow-up resume commands.
+- Use the dispatcher-returned `SESSION_ID` as the source of truth for follow-up resume commands.
 - Standard form: `code-dispatcher --backend <backend> resume <SESSION_ID> ...`.
 
 
@@ -287,7 +287,7 @@ EOF
 
 - Runtime environment and approval policy are pre-configured by the human/operator.
 - Do not inject, override, or document environment variable values in this skill.
-- Treat wrapper-internal timeout as a very long fallback configured by the operator.
+- Treat dispatcher-internal timeout as a very long fallback configured by the operator.
 - Control actual waiting budget via the host tool-call timeout.
 - Timeout tiers for tool-call invocations:
   - Simple tasks: `600` s (10 minutes) minimum.
@@ -375,9 +375,9 @@ Note: Global --backend is required; per-task backend is optional
 - Use staged termination and stop escalation as soon as processes exit.
 - Name-based global cleanup (`pkill -x codex/claude/gemini`) is prohibited.
 
-1. **Graceful stop wrapper first**:
+1. **Graceful stop dispatcher first**:
    ```bash
-   # Inspect running wrapper processes
+   # Inspect running dispatcher processes
    pgrep -fa code-dispatcher
 
    # Soft interrupt first
