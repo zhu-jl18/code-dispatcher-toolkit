@@ -521,7 +521,7 @@ func TestLoggerCoverageSuite(t *testing.T) {
 		{"TestMainWrapperHelp", TestMainWrapperHelp},
 
 		{"TestExecutorHelperCoverage", TestExecutorHelperCoverage},
-		{"TestExecutorRunCodexTaskWithContext", TestExecutorRunCodexTaskWithContext},
+		{"TestExecutorRunTaskWithContext", TestExecutorRunTaskWithContext},
 		{"TestExecutorParallelLogIsolation", TestExecutorParallelLogIsolation},
 		{"TestExecutorTaskLoggerContext", TestExecutorTaskLoggerContext},
 		{"TestExecutorExecuteConcurrentWithContextBranches", TestExecutorExecuteConcurrentWithContextBranches},

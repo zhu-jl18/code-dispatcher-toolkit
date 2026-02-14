@@ -182,9 +182,9 @@ func findResultByID(t *testing.T, payload integrationOutput, id string) TaskResu
 
 func TestRunParallelEndToEnd_OrderAndConcurrency(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
+	origRun := runParallelTaskFn
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
@@ -219,7 +219,7 @@ task-e`
 	var running int64
 	var maxParallel int64
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		start := time.Now()
 		mu.Lock()
 		starts[task.ID] = start
@@ -293,13 +293,13 @@ task-e`
 
 func TestRunParallelCycleDetectionStopsExecution(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	origRun := runParallelTaskFn
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		t.Fatalf("task %s should not execute on cycle", task.ID)
 		return TaskResult{}
 	}
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
@@ -331,9 +331,9 @@ b`
 
 func TestRunParallelOutputsIncludeLogPaths(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
+	origRun := runParallelTaskFn
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
@@ -342,7 +342,7 @@ func TestRunParallelOutputsIncludeLogPaths(t *testing.T) {
 		return filepath.Join(tempDir, fmt.Sprintf("%s.log", id))
 	}
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		res := TaskResult{
 			TaskID:    task.ID,
 			Message:   fmt.Sprintf("result-%s", task.ID),
@@ -422,8 +422,8 @@ ok-d`
 
 	expectedLog := filepath.Join(tempDir, fmt.Sprintf("code-router-%d.log", os.Getpid()))
 
-	origRun := runCodexTaskFn
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	origRun := runParallelTaskFn
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		path := expectedLog
 		if logger := activeLogger(); logger != nil && logger.Path() != "" {
 			path = logger.Path()
@@ -433,7 +433,7 @@ ok-d`
 		}
 		return TaskResult{TaskID: task.ID, ExitCode: 0, Message: task.Task, LogPath: path}
 	}
-	t.Cleanup(func() { runCodexTaskFn = origRun })
+	t.Cleanup(func() { runParallelTaskFn = origRun })
 
 	var exitCode int
 	var stdoutOut string
@@ -497,8 +497,8 @@ func TestRunNonParallelOutputsIncludeLogPathsIntegration(t *testing.T) {
 	os.Args = []string{"code-router", "--backend", "codex", "integration-log-check"}
 	stdinReader = strings.NewReader("")
 	isTerminalFn = func() bool { return true }
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string {
 		return []string{`{"type":"thread.started","thread_id":"integration-session"}` + "\n" + `{"type":"item.completed","item":{"type":"agent_message","text":"done"}}`}
 	}
 
@@ -521,9 +521,9 @@ func TestRunNonParallelOutputsIncludeLogPathsIntegration(t *testing.T) {
 
 func TestRunParallelPartialFailureBlocksDependents(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
+	origRun := runParallelTaskFn
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
@@ -532,7 +532,7 @@ func TestRunParallelPartialFailureBlocksDependents(t *testing.T) {
 		return filepath.Join(tempDir, fmt.Sprintf("%s.log", id))
 	}
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		path := logPathFor(task.ID)
 		if task.ID == "A" {
 			return TaskResult{TaskID: "A", ExitCode: 2, Error: "boom", LogPath: path}
@@ -611,14 +611,14 @@ ok-e`
 
 func TestRunParallelTimeoutPropagation(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
+	origRun := runParallelTaskFn
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
 	var receivedTimeout int
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		receivedTimeout = timeout
 		return TaskResult{TaskID: task.ID, ExitCode: 124, Error: "timeout"}
 	}
@@ -655,13 +655,13 @@ slow`
 
 func TestRunConcurrentSpeedupBenchmark(t *testing.T) {
 	defer resetTestHooks()
-	origRun := runCodexTaskFn
+	origRun := runParallelTaskFn
 	t.Cleanup(func() {
-		runCodexTaskFn = origRun
+		runParallelTaskFn = origRun
 		resetTestHooks()
 	})
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		time.Sleep(50 * time.Millisecond)
 		return TaskResult{TaskID: task.ID}
 	}
@@ -674,7 +674,7 @@ func TestRunConcurrentSpeedupBenchmark(t *testing.T) {
 
 	serialStart := time.Now()
 	for _, task := range tasks {
-		_ = runCodexTaskFn(task, 5)
+		_ = runParallelTaskFn(task, 5)
 	}
 	serialElapsed := time.Since(serialStart)
 
@@ -711,7 +711,7 @@ func TestRunStartupCleanupRemovesOrphansEndToEnd(t *testing.T) {
 		return time.Time{}
 	})
 
-	codexCommand = createFakeCodexScript(t, "tid-startup", "ok")
+	backendCommand = createFakeCodexScript(t, "tid-startup", "ok")
 	stdinReader = strings.NewReader("")
 	isTerminalFn = func() bool { return true }
 	os.Args = []string{"code-router", "--backend", "codex", "task"}
@@ -878,7 +878,7 @@ func TestRunCleanupFlagEndToEnd_FailureDoesNotAffectStartup(t *testing.T) {
 	cleanupLogsFn = func() (CleanupStats, error) {
 		return CleanupStats{}, nil
 	}
-	codexCommand = createFakeCodexScript(t, "tid-cleanup-e2e", "ok")
+	backendCommand = createFakeCodexScript(t, "tid-cleanup-e2e", "ok")
 	stdinReader = strings.NewReader("")
 	isTerminalFn = func() bool { return true }
 	os.Args = []string{"code-router", "--backend", "codex", "post-cleanup task"}

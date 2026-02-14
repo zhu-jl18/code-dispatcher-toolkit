@@ -93,7 +93,7 @@ type logWriter struct {
 
 func newLogWriter(prefix string, maxLen int) *logWriter {
 	if maxLen <= 0 {
-		maxLen = codexLogLineLimit
+		maxLen = logLineLimit
 	}
 	return &logWriter{prefix: prefix, maxLen: maxLen}
 }

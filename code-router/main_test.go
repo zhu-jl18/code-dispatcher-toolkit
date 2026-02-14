@@ -26,13 +26,13 @@ func resetTestHooks() {
 	resetRuntimeSettingsForTest()
 	stdinReader = os.Stdin
 	isTerminalFn = defaultIsTerminal
-	codexCommand = "codex"
+	backendCommand = "codex"
 	cleanupHook = nil
 	cleanupLogsFn = cleanupOldLogs
 	signalNotifyFn = signal.Notify
 	signalStopFn = signal.Stop
 	signalNotifyCtxFn = signal.NotifyContext
-	buildCodexArgsFn = buildCodexArgs
+	buildArgsFn = buildCodexArgs
 	selectBackendFn = selectBackend
 	commandContext = exec.CommandContext
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
@@ -41,8 +41,8 @@ func resetTestHooks() {
 	forceKillDelay.Store(5)
 	closeLogger()
 	executablePathFn = os.Executable
-	runTaskFn = runCodexTask
-	runCodexTaskFn = defaultRunCodexTaskFn
+	runTaskFn = runTask
+	runParallelTaskFn = defaultRunParallelTaskFn
 	exitFn = os.Exit
 }
 
@@ -716,7 +716,7 @@ func TestFakeCmdInfra(t *testing.T) {
 		}
 	})
 
-	t.Run("integration with runCodexTask", func(t *testing.T) {
+	t.Run("integration with runTask", func(t *testing.T) {
 		defer resetTestHooks()
 
 		fake := newFakeCmd(fakeCmdConfig{
@@ -733,14 +733,14 @@ func TestFakeCmdInfra(t *testing.T) {
 		newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 			return fake
 		}
-		buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+		buildArgsFn = func(cfg *Config, targetArg string) []string {
 			return []string{targetArg}
 		}
-		codexCommand = "fake-cmd"
+		backendCommand = "fake-cmd"
 
-		res := runCodexTask(TaskSpec{Task: "ignored"}, false, 2)
+		res := runTask(TaskSpec{Task: "ignored"}, false, 2)
 		if res.ExitCode != 0 {
-			t.Fatalf("runCodexTask exit = %d, want 0 (%s)", res.ExitCode, res.Error)
+			t.Fatalf("runTask exit = %d, want 0 (%s)", res.ExitCode, res.Error)
 		}
 		if res.Message != "fake-msg" {
 			t.Fatalf("message = %q, want fake-msg", res.Message)
@@ -757,7 +757,7 @@ func TestFakeCmdInfra(t *testing.T) {
 	})
 }
 
-func TestRunCodexTask_WaitBeforeParse(t *testing.T) {
+func TestRunTask_WaitBeforeParse(t *testing.T) {
 	defer resetTestHooks()
 
 	const (
@@ -779,17 +779,17 @@ func TestRunCodexTask_WaitBeforeParse(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return fake
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+	buildArgsFn = func(cfg *Config, targetArg string) []string {
 		return []string{targetArg}
 	}
-	codexCommand = "fake-cmd"
+	backendCommand = "fake-cmd"
 
 	start := time.Now()
-	result := runCodexTask(TaskSpec{Task: "ignored"}, false, 5)
+	result := runTask(TaskSpec{Task: "ignored"}, false, 5)
 	elapsed := time.Since(start)
 
 	if result.ExitCode != 0 {
-		t.Fatalf("runCodexTask exit = %d, want 0 (%s)", result.ExitCode, result.Error)
+		t.Fatalf("runTask exit = %d, want 0 (%s)", result.ExitCode, result.Error)
 	}
 	if result.Message != message {
 		t.Fatalf("message = %q, want %q", result.Message, message)
@@ -798,7 +798,7 @@ func TestRunCodexTask_WaitBeforeParse(t *testing.T) {
 		t.Fatalf("sessionID = %q, want %q", result.SessionID, threadID)
 	}
 	if elapsed >= extraDelay {
-		t.Fatalf("runCodexTask took %v, want < %v", elapsed, extraDelay)
+		t.Fatalf("runTask took %v, want < %v", elapsed, extraDelay)
 	}
 
 	if fake.stdout == nil {
@@ -809,7 +809,7 @@ func TestRunCodexTask_WaitBeforeParse(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_ParseStall(t *testing.T) {
+func TestRunTask_ParseStall(t *testing.T) {
 	defer resetTestHooks()
 
 	const threadID = "stall-thread"
@@ -826,20 +826,20 @@ func TestRunCodexTask_ParseStall(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return blockingCmd
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+	buildArgsFn = func(cfg *Config, targetArg string) []string {
 		return []string{targetArg}
 	}
-	codexCommand = "fake-cmd"
+	backendCommand = "fake-cmd"
 
 	start := time.Now()
-	result := runCodexTask(TaskSpec{Task: "stall"}, false, 60)
+	result := runTask(TaskSpec{Task: "stall"}, false, 60)
 	elapsed := time.Since(start)
 	if !blockingCmd.injected.Load() {
 		t.Fatalf("stdout reader was not installed")
 	}
 
 	if result.ExitCode == 0 || result.Error == "" {
-		t.Fatalf("expected runCodexTask to error when parse stalls, got %+v", result)
+		t.Fatalf("expected runTask to error when parse stalls, got %+v", result)
 	}
 	errText := strings.ToLower(result.Error)
 	if !strings.Contains(errText, "drain timeout") && !strings.Contains(errText, "agent_message") {
@@ -847,11 +847,11 @@ func TestRunCodexTask_ParseStall(t *testing.T) {
 	}
 
 	if elapsed < stdoutDrainTimeout {
-		t.Fatalf("runCodexTask returned after %v (reason=%s), want >= %v to confirm drainTimer firing", elapsed, fake.stdout.Reason(), stdoutDrainTimeout)
+		t.Fatalf("runTask returned after %v (reason=%s), want >= %v to confirm drainTimer firing", elapsed, fake.stdout.Reason(), stdoutDrainTimeout)
 	}
 	maxDuration := stdoutDrainTimeout + time.Second
 	if elapsed >= maxDuration {
-		t.Fatalf("runCodexTask took %v, want < %v", elapsed, maxDuration)
+		t.Fatalf("runTask took %v, want < %v", elapsed, maxDuration)
 	}
 
 	if fake.stdout == nil {
@@ -878,7 +878,7 @@ func TestRunCodexTask_ParseStall(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_ContextTimeout(t *testing.T) {
+func TestRunTask_ContextTimeout(t *testing.T) {
 	defer resetTestHooks()
 	forceKillDelay.Store(0)
 
@@ -892,10 +892,10 @@ func TestRunCodexTask_ContextTimeout(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return fake
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+	buildArgsFn = func(cfg *Config, targetArg string) []string {
 		return []string{targetArg}
 	}
-	codexCommand = "fake-cmd"
+	backendCommand = "fake-cmd"
 
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
@@ -908,7 +908,7 @@ func TestRunCodexTask_ContextTimeout(t *testing.T) {
 	}
 	defer func() { terminateCommandFn = terminateCommand }()
 
-	result := runCodexTaskWithContext(ctx, TaskSpec{Task: "ctx-timeout", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
+	result := runTaskWithContext(ctx, TaskSpec{Task: "ctx-timeout", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
 
 	if result.ExitCode != 124 {
 		t.Fatalf("exit code = %d, want 124 (%s)", result.ExitCode, result.Error)
@@ -948,7 +948,7 @@ func TestRunCodexTask_ContextTimeout(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_ForcesStopAfterCompletion(t *testing.T) {
+func TestRunTask_ForcesStopAfterCompletion(t *testing.T) {
 	defer resetTestHooks()
 	forceKillDelay.Store(0)
 
@@ -966,18 +966,18 @@ func TestRunCodexTask_ForcesStopAfterCompletion(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return fake
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
-	codexCommand = "fake-cmd"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "fake-cmd"
 
 	start := time.Now()
-	result := runCodexTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
+	result := runTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
 	duration := time.Since(start)
 
 	if result.ExitCode != 0 || result.Message != "done" {
 		t.Fatalf("unexpected result: %+v", result)
 	}
 	if duration > 2*time.Second {
-		t.Fatalf("runCodexTaskWithContext took too long: %v", duration)
+		t.Fatalf("runTaskWithContext took too long: %v", duration)
 	}
 	if runtime.GOOS == "windows" {
 		if fake.process.KillCount() == 0 {
@@ -988,7 +988,7 @@ func TestRunCodexTask_ForcesStopAfterCompletion(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_ForcesStopAfterTurnCompleted(t *testing.T) {
+func TestRunTask_ForcesStopAfterTurnCompleted(t *testing.T) {
 	defer resetTestHooks()
 	forceKillDelay.Store(0)
 
@@ -1006,18 +1006,18 @@ func TestRunCodexTask_ForcesStopAfterTurnCompleted(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return fake
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
-	codexCommand = "fake-cmd"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "fake-cmd"
 
 	start := time.Now()
-	result := runCodexTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
+	result := runTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
 	duration := time.Since(start)
 
 	if result.ExitCode != 0 || result.Message != "done" {
 		t.Fatalf("unexpected result: %+v", result)
 	}
 	if duration > 2*time.Second {
-		t.Fatalf("runCodexTaskWithContext took too long: %v", duration)
+		t.Fatalf("runTaskWithContext took too long: %v", duration)
 	}
 	if runtime.GOOS == "windows" {
 		if fake.process.KillCount() == 0 {
@@ -1028,7 +1028,7 @@ func TestRunCodexTask_ForcesStopAfterTurnCompleted(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_DoesNotTerminateBeforeThreadCompleted(t *testing.T) {
+func TestRunTask_DoesNotTerminateBeforeThreadCompleted(t *testing.T) {
 	defer resetTestHooks()
 	forceKillDelay.Store(0)
 
@@ -1047,18 +1047,18 @@ func TestRunCodexTask_DoesNotTerminateBeforeThreadCompleted(t *testing.T) {
 	newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
 		return fake
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
-	codexCommand = "fake-cmd"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "fake-cmd"
 
 	start := time.Now()
-	result := runCodexTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
+	result := runTaskWithContext(context.Background(), TaskSpec{Task: "done", WorkDir: defaultWorkdir}, nil, nil, false, false, 60)
 	duration := time.Since(start)
 
 	if result.ExitCode != 0 || result.Message != "final" {
 		t.Fatalf("unexpected result: %+v", result)
 	}
 	if duration > 5*time.Second {
-		t.Fatalf("runCodexTaskWithContext took too long: %v", duration)
+		t.Fatalf("runTaskWithContext took too long: %v", duration)
 	}
 	if runtime.GOOS == "windows" {
 		if fake.process.KillCount() == 0 {
@@ -1524,7 +1524,7 @@ func TestRuntimeEnvLoaded_NoModelFlag(t *testing.T) {
 	newCommandRunner = makeRunner(&gotName, &gotArgs, &fake)
 	t.Cleanup(func() { newCommandRunner = origRunner })
 
-	res := runCodexTaskWithContext(context.Background(), TaskSpec{Task: "hi", Mode: "new", WorkDir: defaultWorkdir}, ClaudeBackend{}, nil, false, true, 5)
+	res := runTaskWithContext(context.Background(), TaskSpec{Task: "hi", Mode: "new", WorkDir: defaultWorkdir}, ClaudeBackend{}, nil, false, true, 5)
 	if res.ExitCode != 0 || res.Message != "ok" {
 		t.Fatalf("unexpected result: %+v", res)
 	}
@@ -2450,8 +2450,8 @@ func TestLogWriterLogLine(t *testing.T) {
 
 func TestNewLogWriterDefaultMaxLen(t *testing.T) {
 	lw := newLogWriter("X:", 0)
-	if lw.maxLen != codexLogLineLimit {
-		t.Fatalf("expected default maxLen %d, got %d", codexLogLineLimit, lw.maxLen)
+	if lw.maxLen != logLineLimit {
+		t.Fatalf("expected default maxLen %d, got %d", logLineLimit, lw.maxLen)
 	}
 }
 
@@ -2530,11 +2530,11 @@ func TestRunReadPipedTask(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_CommandNotFound(t *testing.T) {
+func TestRunTask_CommandNotFound(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "nonexistent-command-xyz"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
-	res := runCodexTask(TaskSpec{Task: "task"}, false, 10)
+	backendCommand = "nonexistent-command-xyz"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	res := runTask(TaskSpec{Task: "task"}, false, 10)
 	if res.ExitCode != 127 {
 		t.Errorf("exitCode = %d, want 127", res.ExitCode)
 	}
@@ -2543,7 +2543,7 @@ func TestRunCodexTask_CommandNotFound(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_StartError(t *testing.T) {
+func TestRunTask_StartError(t *testing.T) {
 	defer resetTestHooks()
 	tmpFile, err := os.CreateTemp("", "start-error")
 	if err != nil {
@@ -2551,30 +2551,30 @@ func TestRunCodexTask_StartError(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	codexCommand = tmpFile.Name()
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	backendCommand = tmpFile.Name()
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
 
-	res := runCodexTask(TaskSpec{Task: "task"}, false, 1)
+	res := runTask(TaskSpec{Task: "task"}, false, 1)
 	if res.ExitCode != 1 || !strings.Contains(res.Error, "failed to start") {
 		t.Fatalf("unexpected result: %+v", res)
 	}
 }
 
-func TestRunCodexTask_WithEcho(t *testing.T) {
+func TestRunTask_WithEcho(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
 
 	jsonOutput := `{"type":"thread.started","thread_id":"test-session"}
 {"type":"item.completed","item":{"type":"agent_message","text":"Test output"}}`
 
-	res := runCodexTask(TaskSpec{Task: jsonOutput}, false, 10)
+	res := runTask(TaskSpec{Task: jsonOutput}, false, 10)
 	if res.ExitCode != 0 || res.Message != "Test output" || res.SessionID != "test-session" {
 		t.Fatalf("unexpected result: %+v", res)
 	}
 }
 
-func TestRunCodexTaskFn_UsesTaskBackend(t *testing.T) {
+func TestRunTaskFn_UsesTaskBackend(t *testing.T) {
 	defer resetTestHooks()
 
 	fake := newFakeCmd(fakeCmdConfig{
@@ -2601,7 +2601,7 @@ func TestRunCodexTaskFn_UsesTaskBackend(t *testing.T) {
 		}, nil
 	}
 
-	res := runCodexTaskFn(TaskSpec{ID: "task-1", Task: "payload", Backend: "Custom"}, 5)
+	res := runParallelTaskFn(TaskSpec{ID: "task-1", Task: "payload", Backend: "Custom"}, 5)
 
 	if res.ExitCode != 0 || res.Message != "backend-msg" || res.SessionID != "backend-thread" {
 		t.Fatalf("unexpected result: %+v", res)
@@ -2620,14 +2620,14 @@ func TestRunCodexTaskFn_UsesTaskBackend(t *testing.T) {
 	}
 }
 
-func TestRunCodexTaskFn_InvalidBackend(t *testing.T) {
+func TestRunTaskFn_InvalidBackend(t *testing.T) {
 	defer resetTestHooks()
 
 	selectBackendFn = func(name string) (Backend, error) {
 		return nil, fmt.Errorf("invalid backend: %s", name)
 	}
 
-	res := runCodexTaskFn(TaskSpec{ID: "bad-task", Task: "noop", Backend: "unknown"}, 5)
+	res := runParallelTaskFn(TaskSpec{ID: "bad-task", Task: "noop", Backend: "unknown"}, 5)
 	if res.ExitCode == 0 {
 		t.Fatalf("expected failure for invalid backend")
 	}
@@ -2639,7 +2639,7 @@ func TestRunCodexTaskFn_InvalidBackend(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_LogPathWithActiveLogger(t *testing.T) {
+func TestRunTask_LogPathWithActiveLogger(t *testing.T) {
 	defer resetTestHooks()
 
 	logger, err := NewLoggerWithSuffix("active-logpath")
@@ -2648,13 +2648,13 @@ func TestRunCodexTask_LogPathWithActiveLogger(t *testing.T) {
 	}
 	setLogger(logger)
 
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
 
 	jsonOutput := `{"type":"thread.started","thread_id":"fake-thread"}
 {"type":"item.completed","item":{"type":"agent_message","text":"ok"}}`
 
-	result := runCodexTask(TaskSpec{Task: jsonOutput}, false, 5)
+	result := runTask(TaskSpec{Task: jsonOutput}, false, 5)
 	if result.LogPath != logger.Path() {
 		t.Fatalf("LogPath = %q, want %q", result.LogPath, logger.Path())
 	}
@@ -2663,16 +2663,16 @@ func TestRunCodexTask_LogPathWithActiveLogger(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_LogPathWithTempLogger(t *testing.T) {
+func TestRunTask_LogPathWithTempLogger(t *testing.T) {
 	defer resetTestHooks()
 
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
 
 	jsonOutput := `{"type":"thread.started","thread_id":"temp-thread"}
 {"type":"item.completed","item":{"type":"agent_message","text":"temp"}}`
 
-	result := runCodexTask(TaskSpec{Task: jsonOutput}, true, 5)
+	result := runTask(TaskSpec{Task: jsonOutput}, true, 5)
 	t.Cleanup(func() {
 		if result.LogPath != "" {
 			os.Remove(result.LogPath)
@@ -2689,7 +2689,7 @@ func TestRunCodexTask_LogPathWithTempLogger(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_LogPathOnStartError(t *testing.T) {
+func TestRunTask_LogPathOnStartError(t *testing.T) {
 	defer resetTestHooks()
 
 	logger, err := NewLoggerWithSuffix("start-error")
@@ -2704,10 +2704,10 @@ func TestRunCodexTask_LogPathOnStartError(t *testing.T) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	codexCommand = tmpFile.Name()
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	backendCommand = tmpFile.Name()
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
 
-	result := runCodexTask(TaskSpec{Task: "ignored"}, false, 5)
+	result := runTask(TaskSpec{Task: "ignored"}, false, 5)
 	if result.ExitCode == 0 {
 		t.Fatalf("expected non-zero exit")
 	}
@@ -2716,36 +2716,36 @@ func TestRunCodexTask_LogPathOnStartError(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_NoMessage(t *testing.T) {
+func TestRunTask_NoMessage(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
 	jsonOutput := `{"type":"thread.started","thread_id":"test-session"}`
-	res := runCodexTask(TaskSpec{Task: jsonOutput}, false, 10)
+	res := runTask(TaskSpec{Task: jsonOutput}, false, 10)
 	if res.ExitCode != 1 || res.Error == "" {
 		t.Fatalf("expected error for missing agent_message, got %+v", res)
 	}
 }
 
-func TestRunCodexTask_WithStdin(t *testing.T) {
+func TestRunTask_WithStdin(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "cat"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	backendCommand = "cat"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
 	jsonInput := `{"type":"item.completed","item":{"type":"agent_message","text":"from stdin"}}`
-	res := runCodexTask(TaskSpec{Task: jsonInput, UseStdin: true}, false, 10)
+	res := runTask(TaskSpec{Task: jsonInput, UseStdin: true}, false, 10)
 	if res.ExitCode != 0 || res.Message != "from stdin" {
 		t.Fatalf("unexpected result: %+v", res)
 	}
 }
 
-func TestRunCodexProcess_WithStdin(t *testing.T) {
+func TestRunBackendProcess_WithStdin(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "cat"
+	backendCommand = "cat"
 	jsonOutput := `{"type":"thread.started","thread_id":"proc"}`
 	jsonOutput += "\n"
 	jsonOutput += `{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}`
 
-	msg, tid, exit := runCodexProcess(context.Background(), []string{}, jsonOutput, true, 5)
+	msg, tid, exit := runBackendProcess(context.Background(), []string{}, jsonOutput, true, 5)
 	if exit != 0 {
 		t.Fatalf("exit code %d, want 0", exit)
 	}
@@ -2754,65 +2754,65 @@ func TestRunCodexProcess_WithStdin(t *testing.T) {
 	}
 }
 
-func TestRunCodexTask_ExitError(t *testing.T) {
+func TestRunTask_ExitError(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "false"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
-	res := runCodexTask(TaskSpec{Task: "noop"}, false, 10)
+	backendCommand = "false"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	res := runTask(TaskSpec{Task: "noop"}, false, 10)
 	if res.ExitCode == 0 || res.Error == "" {
 		t.Fatalf("expected failure, got %+v", res)
 	}
 }
 
-func TestRunCodexTask_StdinPipeError(t *testing.T) {
+func TestRunTask_StdinPipeError(t *testing.T) {
 	defer resetTestHooks()
 	commandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		cmd := exec.CommandContext(ctx, "cat")
 		cmd.Stdin = os.Stdin
 		return cmd
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
-	res := runCodexTask(TaskSpec{Task: "data", UseStdin: true}, false, 1)
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	res := runTask(TaskSpec{Task: "data", UseStdin: true}, false, 1)
 	if res.ExitCode != 1 || !strings.Contains(res.Error, "stdin pipe") {
 		t.Fatalf("expected stdin pipe error, got %+v", res)
 	}
 }
 
-func TestRunCodexTask_StdoutPipeError(t *testing.T) {
+func TestRunTask_StdoutPipeError(t *testing.T) {
 	defer resetTestHooks()
 	commandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		cmd := exec.CommandContext(ctx, "echo", "noop")
 		cmd.Stdout = os.Stdout
 		return cmd
 	}
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
-	res := runCodexTask(TaskSpec{Task: "noop"}, false, 1)
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{} }
+	res := runTask(TaskSpec{Task: "noop"}, false, 1)
 	if res.ExitCode != 1 || !strings.Contains(res.Error, "stdout pipe") {
 		t.Fatalf("expected stdout pipe error, got %+v", res)
 	}
 }
 
-func TestRunCodexTask_Timeout(t *testing.T) {
+func TestRunTask_Timeout(t *testing.T) {
 	defer resetTestHooks()
-	codexCommand = "sleep"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{"2"} }
-	res := runCodexTask(TaskSpec{Task: "ignored"}, false, 1)
+	backendCommand = "sleep"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{"2"} }
+	res := runTask(TaskSpec{Task: "ignored"}, false, 1)
 	if res.ExitCode != 124 || !strings.Contains(res.Error, "timeout") {
 		t.Fatalf("expected timeout, got %+v", res)
 	}
 }
 
-func TestRunCodexTask_SignalHandling(t *testing.T) {
+func TestRunTask_SignalHandling(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("signal-based test is not supported on Windows")
 	}
 
 	defer resetTestHooks()
-	codexCommand = "sleep"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{"5"} }
+	backendCommand = "sleep"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{"5"} }
 
 	resultCh := make(chan TaskResult, 1)
-	go func() { resultCh <- runCodexTask(TaskSpec{Task: "ignored"}, false, 5) }()
+	go func() { resultCh <- runTask(TaskSpec{Task: "ignored"}, false, 5) }()
 
 	time.Sleep(200 * time.Millisecond)
 	if proc, err := os.FindProcess(os.Getpid()); err == nil && proc != nil {
@@ -2857,12 +2857,12 @@ func TestCancelReason(t *testing.T) {
 	}
 }
 
-func TestRunCodexProcess(t *testing.T) {
+func TestRunBackendProcess(t *testing.T) {
 	defer resetTestHooks()
 	script := createFakeCodexScript(t, "proc-thread", "proc-msg")
-	codexCommand = script
+	backendCommand = script
 
-	msg, threadID, exitCode := runCodexProcess(context.Background(), nil, "ignored", false, 5)
+	msg, threadID, exitCode := runBackendProcess(context.Background(), nil, "ignored", false, 5)
 	if exitCode != 0 {
 		t.Fatalf("exit = %d, want 0", exitCode)
 	}
@@ -2878,14 +2878,14 @@ func TestRunSilentMode(t *testing.T) {
 	defer resetTestHooks()
 	jsonOutput := `{"type":"thread.started","thread_id":"silent-session"}
 {"type":"item.completed","item":{"type":"agent_message","text":"quiet"}}`
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string { return []string{targetArg} }
 
 	capture := func(silent bool) string {
 		oldStderr := os.Stderr
 		r, w, _ := os.Pipe()
 		os.Stderr = w
-		res := runCodexTask(TaskSpec{Task: jsonOutput}, silent, 10)
+		res := runTask(TaskSpec{Task: jsonOutput}, silent, 10)
 		if res.ExitCode != 0 {
 			t.Fatalf("unexpected exitCode %d", res.ExitCode)
 		}
@@ -3066,13 +3066,13 @@ func TestRunTopologicalSort_LargeGraph(t *testing.T) {
 }
 
 func TestParallelExecuteConcurrent(t *testing.T) {
-	orig := runCodexTaskFn
-	defer func() { runCodexTaskFn = orig }()
+	orig := runParallelTaskFn
+	defer func() { runParallelTaskFn = orig }()
 
 	var maxParallel int64
 	var current int64
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		cur := atomic.AddInt64(&current, 1)
 		for {
 			prev := atomic.LoadInt64(&maxParallel)
@@ -3102,13 +3102,13 @@ func TestParallelExecuteConcurrent(t *testing.T) {
 }
 
 func TestRunExecuteConcurrent_LayerOrdering(t *testing.T) {
-	orig := runCodexTaskFn
-	defer func() { runCodexTaskFn = orig }()
+	orig := runParallelTaskFn
+	defer func() { runParallelTaskFn = orig }()
 
 	var mu sync.Mutex
 	var order []string
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		mu.Lock()
 		order = append(order, task.ID)
 		mu.Unlock()
@@ -3124,10 +3124,10 @@ func TestRunExecuteConcurrent_LayerOrdering(t *testing.T) {
 }
 
 func TestRunExecuteConcurrent_ErrorIsolation(t *testing.T) {
-	orig := runCodexTaskFn
-	defer func() { runCodexTaskFn = orig }()
+	orig := runParallelTaskFn
+	defer func() { runParallelTaskFn = orig }()
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		if task.ID == "fail" {
 			return TaskResult{TaskID: task.ID, ExitCode: 2, Error: "boom"}
 		}
@@ -3157,10 +3157,10 @@ func TestRunExecuteConcurrent_ErrorIsolation(t *testing.T) {
 }
 
 func TestRunExecuteConcurrent_PanicRecovered(t *testing.T) {
-	orig := runCodexTaskFn
-	defer func() { runCodexTaskFn = orig }()
+	orig := runParallelTaskFn
+	defer func() { runParallelTaskFn = orig }()
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		panic("boom")
 	}
 
@@ -3171,10 +3171,10 @@ func TestRunExecuteConcurrent_PanicRecovered(t *testing.T) {
 }
 
 func TestRunExecuteConcurrent_LargeFanout(t *testing.T) {
-	orig := runCodexTaskFn
-	defer func() { runCodexTaskFn = orig }()
+	orig := runParallelTaskFn
+	defer func() { runParallelTaskFn = orig }()
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult { return TaskResult{TaskID: task.ID} }
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult { return TaskResult{TaskID: task.ID} }
 	layer := make([]TaskSpec, 0, 1200)
 	for i := 0; i < 1200; i++ {
 		layer = append(layer, TaskSpec{ID: fmt.Sprintf("id-%d", i)})
@@ -3189,16 +3189,16 @@ func TestParallelBackendPropagation(t *testing.T) {
 	defer resetTestHooks()
 	cleanupLogsFn = func() (CleanupStats, error) { return CleanupStats{}, nil }
 
-	orig := runCodexTaskFn
+	orig := runParallelTaskFn
 	var mu sync.Mutex
 	seen := make(map[string]string)
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		mu.Lock()
 		seen[task.ID] = task.Backend
 		mu.Unlock()
 		return TaskResult{TaskID: task.ID, ExitCode: 0, Message: "ok"}
 	}
-	t.Cleanup(func() { runCodexTaskFn = orig })
+	t.Cleanup(func() { runParallelTaskFn = orig })
 
 	stdinReader = strings.NewReader(`---TASK---
 id: first
@@ -3261,11 +3261,11 @@ test`
 	stdinReader = strings.NewReader(jsonInput)
 	defer func() { stdinReader = os.Stdin }()
 
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		return TaskResult{TaskID: task.ID, ExitCode: 0, Message: "test output"}
 	}
 	defer func() {
-		runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult { return runCodexTask(task, true, timeout) }
+		runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult { return runTask(task, true, timeout) }
 	}()
 
 	exitCode := run()
@@ -3303,11 +3303,11 @@ id: T1
 noop`)
 	t.Cleanup(func() { stdinReader = os.Stdin })
 
-	orig := runCodexTaskFn
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	orig := runParallelTaskFn
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		return TaskResult{TaskID: task.ID, ExitCode: 0, Message: "full output marker"}
 	}
-	t.Cleanup(func() { runCodexTaskFn = orig })
+	t.Cleanup(func() { runParallelTaskFn = orig })
 
 	out := captureOutput(t, func() {
 		if code := run(); code != 0 {
@@ -3361,11 +3361,11 @@ noop`)
 		return CleanupStats{}, nil
 	}
 
-	orig := runCodexTaskFn
-	runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+	orig := runParallelTaskFn
+	runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 		return TaskResult{TaskID: task.ID, ExitCode: 0, Message: "ok"}
 	}
-	defer func() { runCodexTaskFn = orig }()
+	defer func() { runParallelTaskFn = orig }()
 
 	if exitCode := run(); exitCode != 0 {
 		t.Fatalf("exit = %d, want 0", exitCode)
@@ -3601,7 +3601,7 @@ func TestVersionCoverageFullRun(t *testing.T) {
 		defer resetTestHooks()
 		cleanupHook = func() {}
 		cleanupLogsFn = func() (CleanupStats, error) { return CleanupStats{}, nil }
-		runCodexTaskFn = func(task TaskSpec, timeout int) TaskResult {
+		runParallelTaskFn = func(task TaskSpec, timeout int) TaskResult {
 			return TaskResult{TaskID: task.ID, ExitCode: 0, Message: "ok"}
 		}
 
@@ -4140,7 +4140,7 @@ func TestRun_CleanupFailureDoesNotBlock(t *testing.T) {
 		panic("boom")
 	}
 
-	codexCommand = createFakeCodexScript(t, "tid-cleanup", "ok")
+	backendCommand = createFakeCodexScript(t, "tid-cleanup", "ok")
 	stdinReader = strings.NewReader("")
 	isTerminalFn = func() bool { return true }
 	os.Args = []string{"code-router", "--backend", "codex", "task"}
@@ -4250,11 +4250,11 @@ func TestRunLogWriter(t *testing.T) {
 
 func TestNewLogWriterDefaultLimit(t *testing.T) {
 	lw := newLogWriter("TEST: ", 0)
-	if lw.maxLen != codexLogLineLimit {
-		t.Fatalf("newLogWriter maxLen = %d, want %d", lw.maxLen, codexLogLineLimit)
+	if lw.maxLen != logLineLimit {
+		t.Fatalf("newLogWriter maxLen = %d, want %d", lw.maxLen, logLineLimit)
 	}
 	lw = newLogWriter("TEST: ", -5)
-	if lw.maxLen != codexLogLineLimit {
+	if lw.maxLen != logLineLimit {
 		t.Fatalf("negative maxLen should default, got %d", lw.maxLen)
 	}
 }
@@ -4387,8 +4387,8 @@ func TestParallelLogPathInSerialMode(t *testing.T) {
 	os.Args = []string{"code-router", "--backend", "codex", "do-stuff"}
 	stdinReader = strings.NewReader("")
 	isTerminalFn = func() bool { return true }
-	codexCommand = "echo"
-	buildCodexArgsFn = func(cfg *Config, targetArg string) []string {
+	backendCommand = "echo"
+	buildArgsFn = func(cfg *Config, targetArg string) []string {
 		return []string{`{"type":"thread.started","thread_id":"cli-session"}` + "\n" + `{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}`}
 	}
 
