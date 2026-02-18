@@ -52,7 +52,7 @@ func runtimeUnsetEnvKeysForBackend(backendName string) []string {
 	if normalizeBackendName(backendName) != "claude" {
 		return nil
 	}
-	return []string{"CLAUDECODE", "claudecode"}
+	return []string{"CLAUDECODE"}
 }
 
 func normalizeBackendName(name string) string {

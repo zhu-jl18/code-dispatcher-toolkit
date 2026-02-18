@@ -566,7 +566,6 @@ func (f *fakeCmd) UnsetEnv(keys []string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, key := range keys {
-		delete(f.env, key)
 		for existing := range f.env {
 			if strings.EqualFold(existing, key) {
 				delete(f.env, existing)

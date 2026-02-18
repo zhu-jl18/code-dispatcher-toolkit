@@ -176,7 +176,7 @@ func TestRuntimeEnvForBackend(t *testing.T) {
 
 	t.Run("claude unsets nested session markers", func(t *testing.T) {
 		got := runtimeUnsetEnvKeysForBackend("claude")
-		want := []string{"CLAUDECODE", "claudecode"}
+		want := []string{"CLAUDECODE"}
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}

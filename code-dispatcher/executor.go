@@ -121,8 +121,13 @@ func (r *realCmd) UnsetEnv(keys []string) {
 }
 
 func mergedCommandEnvMap(cmdEnv []string) map[string]string {
-	merged := make(map[string]string, len(cmdEnv)+len(os.Environ()))
-	appendEnvList(merged, os.Environ())
+	if len(cmdEnv) == 0 {
+		merged := make(map[string]string, len(os.Environ()))
+		appendEnvList(merged, os.Environ())
+		return merged
+	}
+
+	merged := make(map[string]string, len(cmdEnv))
 	appendEnvList(merged, cmdEnv)
 	return merged
 }
@@ -159,7 +164,6 @@ func deleteEnvKey(envMap map[string]string, key string) {
 	if key == "" {
 		return
 	}
-	delete(envMap, key)
 	for existing := range envMap {
 		if strings.EqualFold(existing, key) {
 			delete(envMap, existing)
