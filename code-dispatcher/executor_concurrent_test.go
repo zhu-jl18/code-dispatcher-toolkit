@@ -95,6 +95,7 @@ type execFakeRunner struct {
 	stdin           io.WriteCloser
 	dir             string
 	env             map[string]string
+	unsetEnvKeys    []string
 	waitErr         error
 	waitDelay       time.Duration
 	startErr        error
@@ -156,6 +157,20 @@ func (f *execFakeRunner) SetEnv(env map[string]string) {
 	}
 	for k, v := range env {
 		f.env[k] = v
+	}
+}
+func (f *execFakeRunner) UnsetEnv(keys []string) {
+	if len(keys) == 0 {
+		return
+	}
+	f.unsetEnvKeys = append(f.unsetEnvKeys, keys...)
+	for _, key := range keys {
+		delete(f.env, key)
+		for existing := range f.env {
+			if strings.EqualFold(existing, key) {
+				delete(f.env, existing)
+			}
+		}
 	}
 }
 func (f *execFakeRunner) Process() processHandle {
@@ -622,6 +637,38 @@ func TestExecutorRunTaskWithContext(t *testing.T) {
 		}
 		if rc == nil || rc.dir != "/tmp" {
 			t.Fatalf("expected backend to set cmd.Dir, got runner=%v dir=%q", rc, rc.dir)
+		}
+	})
+
+	t.Run("claudeBackendUnsetsNestedSessionEnvMarker", func(t *testing.T) {
+		t.Setenv("CLAUDECODE", "1")
+		setRuntimeSettingsForTest(map[string]string{"ANTHROPIC_API_KEY": "secret"})
+		t.Cleanup(resetRuntimeSettingsForTest)
+
+		var rc *execFakeRunner
+		newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
+			rc = &execFakeRunner{
+				stdout:  newReasonReadCloser(`{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}`),
+				process: &execFakeProcess{pid: 15},
+			}
+			return rc
+		}
+
+		res := runTaskWithContext(context.Background(), TaskSpec{ID: "task-unset", Task: "payload", WorkDir: "/tmp"}, ClaudeBackend{}, nil, false, false, 1)
+		if res.ExitCode != 0 || res.Message != "ok" {
+			t.Fatalf("unexpected result: %+v", res)
+		}
+		if rc == nil {
+			t.Fatalf("expected runner to be captured")
+		}
+		if !slices.Contains(rc.unsetEnvKeys, "CLAUDECODE") {
+			t.Fatalf("expected UnsetEnv to include CLAUDECODE, got %v", rc.unsetEnvKeys)
+		}
+		if _, exists := rc.env["CLAUDECODE"]; exists {
+			t.Fatalf("CLAUDECODE should be removed from backend env, got %v", rc.env)
+		}
+		if rc.env["ANTHROPIC_API_KEY"] != "secret" {
+			t.Fatalf("expected runtime env to keep ANTHROPIC_API_KEY, got %v", rc.env)
 		}
 	})
 

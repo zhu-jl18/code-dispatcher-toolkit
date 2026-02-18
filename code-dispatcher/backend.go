@@ -48,6 +48,13 @@ func runtimeEnvForBackend(backendName string) map[string]string {
 	return env
 }
 
+func runtimeUnsetEnvKeysForBackend(backendName string) []string {
+	if normalizeBackendName(backendName) != "claude" {
+		return nil
+	}
+	return []string{"CLAUDECODE", "claudecode"}
+}
+
 func normalizeBackendName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
 }

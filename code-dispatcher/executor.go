@@ -29,6 +29,7 @@ type commandRunner interface {
 	SetStderr(io.Writer)
 	SetDir(string)
 	SetEnv(env map[string]string)
+	UnsetEnv(keys []string)
 	Process() processHandle
 }
 
@@ -96,27 +97,7 @@ func (r *realCmd) SetEnv(env map[string]string) {
 		return
 	}
 
-	merged := make(map[string]string, len(env)+len(os.Environ()))
-	for _, kv := range os.Environ() {
-		if kv == "" {
-			continue
-		}
-		idx := strings.IndexByte(kv, '=')
-		if idx <= 0 {
-			continue
-		}
-		merged[kv[:idx]] = kv[idx+1:]
-	}
-	for _, kv := range r.cmd.Env {
-		if kv == "" {
-			continue
-		}
-		idx := strings.IndexByte(kv, '=')
-		if idx <= 0 {
-			continue
-		}
-		merged[kv[:idx]] = kv[idx+1:]
-	}
+	merged := mergedCommandEnvMap(r.cmd.Env)
 	for k, v := range env {
 		if strings.TrimSpace(k) == "" {
 			continue
@@ -124,17 +105,66 @@ func (r *realCmd) SetEnv(env map[string]string) {
 		merged[k] = v
 	}
 
-	keys := make([]string, 0, len(merged))
-	for k := range merged {
+	r.cmd.Env = envMapToList(merged)
+}
+
+func (r *realCmd) UnsetEnv(keys []string) {
+	if r == nil || r.cmd == nil || len(keys) == 0 {
+		return
+	}
+
+	merged := mergedCommandEnvMap(r.cmd.Env)
+	for _, key := range keys {
+		deleteEnvKey(merged, key)
+	}
+	r.cmd.Env = envMapToList(merged)
+}
+
+func mergedCommandEnvMap(cmdEnv []string) map[string]string {
+	merged := make(map[string]string, len(cmdEnv)+len(os.Environ()))
+	appendEnvList(merged, os.Environ())
+	appendEnvList(merged, cmdEnv)
+	return merged
+}
+
+func appendEnvList(dst map[string]string, envList []string) {
+	for _, kv := range envList {
+		if kv == "" {
+			continue
+		}
+		idx := strings.IndexByte(kv, '=')
+		if idx <= 0 {
+			continue
+		}
+		dst[kv[:idx]] = kv[idx+1:]
+	}
+}
+
+func envMapToList(envMap map[string]string) []string {
+	keys := make([]string, 0, len(envMap))
+	for k := range envMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	out := make([]string, 0, len(keys))
 	for _, k := range keys {
-		out = append(out, k+"="+merged[k])
+		out = append(out, k+"="+envMap[k])
 	}
-	r.cmd.Env = out
+	return out
+}
+
+func deleteEnvKey(envMap map[string]string, key string) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return
+	}
+	delete(envMap, key)
+	for existing := range envMap {
+		if strings.EqualFold(existing, key) {
+			delete(envMap, existing)
+		}
+	}
 }
 
 func (r *realCmd) Process() processHandle {
@@ -799,11 +829,11 @@ func runTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backend Ba
 	logger := injectedLogger
 
 	cfg := &Config{
-		Mode:            taskSpec.Mode,
-		Task:            taskSpec.Task,
-		SessionID:       taskSpec.SessionID,
-		WorkDir:         taskSpec.WorkDir,
-		Backend:         defaultBackendName,
+		Mode:      taskSpec.Mode,
+		Task:      taskSpec.Task,
+		SessionID: taskSpec.SessionID,
+		WorkDir:   taskSpec.WorkDir,
+		Backend:   defaultBackendName,
 	}
 
 	commandName := backendCommand
@@ -832,6 +862,7 @@ func runTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backend Ba
 	}
 
 	backendEnv := runtimeEnvForBackend(cfg.Backend)
+	backendEnvUnsetKeys := runtimeUnsetEnvKeysForBackend(cfg.Backend)
 
 	useStdin := taskSpec.UseStdin
 	targetArg := taskSpec.Task
@@ -938,6 +969,9 @@ func runTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backend Ba
 
 	if len(backendEnv) > 0 {
 		cmd.SetEnv(backendEnv)
+	}
+	if len(backendEnvUnsetKeys) > 0 {
+		cmd.UnsetEnv(backendEnvUnsetKeys)
 	}
 
 	// For backends that don't support -C flag (claude, gemini), set working directory via cmd.Dir
