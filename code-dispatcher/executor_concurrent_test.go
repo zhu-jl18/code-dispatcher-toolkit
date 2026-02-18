@@ -95,6 +95,7 @@ type execFakeRunner struct {
 	stdin           io.WriteCloser
 	dir             string
 	env             map[string]string
+	unsetEnvKeys    []string
 	waitErr         error
 	waitDelay       time.Duration
 	startErr        error
@@ -156,6 +157,19 @@ func (f *execFakeRunner) SetEnv(env map[string]string) {
 	}
 	for k, v := range env {
 		f.env[k] = v
+	}
+}
+func (f *execFakeRunner) UnsetEnv(keys []string) {
+	if len(keys) == 0 {
+		return
+	}
+	f.unsetEnvKeys = append(f.unsetEnvKeys, keys...)
+	for _, key := range keys {
+		for existing := range f.env {
+			if strings.EqualFold(existing, key) {
+				delete(f.env, existing)
+			}
+		}
 	}
 }
 func (f *execFakeRunner) Process() processHandle {
@@ -374,6 +388,34 @@ func TestExecutorHelperCoverage(t *testing.T) {
 		cancelled := executeConcurrentWithContext(ctx, [][]TaskSpec{{{ID: "cancel"}}}, 1, 1)
 		if cancelled[0].ExitCode == 0 {
 			t.Fatalf("expected cancelled result, got %+v", cancelled[0])
+		}
+	})
+
+	t.Run("realCmdSetEnvKeepsUnsetVariablesRemoved", func(t *testing.T) {
+		t.Setenv("CLAUDECODE", "1")
+		t.Setenv("CODE_DISPATCHER_TEST_MARKER", "marker")
+
+		rc := &realCmd{cmd: &exec.Cmd{}}
+		rc.UnsetEnv([]string{"CLAUDECODE"})
+		rc.SetEnv(map[string]string{"ANTHROPIC_API_KEY": "secret"})
+
+		envMap := make(map[string]string, len(rc.cmd.Env))
+		for _, kv := range rc.cmd.Env {
+			idx := strings.IndexByte(kv, '=')
+			if idx <= 0 {
+				continue
+			}
+			envMap[kv[:idx]] = kv[idx+1:]
+		}
+
+		if _, ok := envMap["CLAUDECODE"]; ok {
+			t.Fatalf("CLAUDECODE should stay removed after SetEnv, got %v", envMap)
+		}
+		if envMap["ANTHROPIC_API_KEY"] != "secret" {
+			t.Fatalf("expected ANTHROPIC_API_KEY to be set, got %v", envMap)
+		}
+		if envMap["CODE_DISPATCHER_TEST_MARKER"] != "marker" {
+			t.Fatalf("expected existing env marker to be preserved, got %v", envMap)
 		}
 	})
 }
@@ -622,6 +664,40 @@ func TestExecutorRunTaskWithContext(t *testing.T) {
 		}
 		if rc == nil || rc.dir != "/tmp" {
 			t.Fatalf("expected backend to set cmd.Dir, got runner=%v dir=%q", rc, rc.dir)
+		}
+	})
+
+	t.Run("claudeBackendUnsetsNestedSessionEnvMarker", func(t *testing.T) {
+		setRuntimeSettingsForTest(map[string]string{
+			"CLAUDECODE":        "1",
+			"ANTHROPIC_API_KEY": "secret",
+		})
+		t.Cleanup(resetRuntimeSettingsForTest)
+
+		var rc *execFakeRunner
+		newCommandRunner = func(ctx context.Context, name string, args ...string) commandRunner {
+			rc = &execFakeRunner{
+				stdout:  newReasonReadCloser(`{"type":"item.completed","item":{"type":"agent_message","text":"ok"}}`),
+				process: &execFakeProcess{pid: 15},
+			}
+			return rc
+		}
+
+		res := runTaskWithContext(context.Background(), TaskSpec{ID: "task-unset", Task: "payload", WorkDir: "/tmp"}, ClaudeBackend{}, nil, false, false, 1)
+		if res.ExitCode != 0 || res.Message != "ok" {
+			t.Fatalf("unexpected result: %+v", res)
+		}
+		if rc == nil {
+			t.Fatalf("expected runner to be captured")
+		}
+		if !slices.Contains(rc.unsetEnvKeys, "CLAUDECODE") {
+			t.Fatalf("expected UnsetEnv to include CLAUDECODE, got %v", rc.unsetEnvKeys)
+		}
+		if _, exists := rc.env["CLAUDECODE"]; exists {
+			t.Fatalf("CLAUDECODE should be removed from backend env, got %v", rc.env)
+		}
+		if rc.env["ANTHROPIC_API_KEY"] != "secret" {
+			t.Fatalf("expected runtime env to keep ANTHROPIC_API_KEY, got %v", rc.env)
 		}
 	})
 

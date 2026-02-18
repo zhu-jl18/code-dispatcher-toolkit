@@ -145,8 +145,8 @@ func TestRuntimeEnvForBackend(t *testing.T) {
 		setRuntimeSettingsForTest(map[string]string{
 			"CODE_DISPATCHER_SKIP_PERMISSIONS": "false",
 			"CODE_DISPATCHER_TIMEOUT":          "7200",
-			"ANTHROPIC_API_KEY":            "secret",
-			"FOO":                          "bar",
+			"ANTHROPIC_API_KEY":                "secret",
+			"FOO":                              "bar",
 		})
 		t.Cleanup(resetRuntimeSettingsForTest)
 
@@ -171,6 +171,20 @@ func TestRuntimeEnvForBackend(t *testing.T) {
 		got := runtimeEnvForBackend("gemini")
 		if got["GEMINI_API_KEY_AUTH_MECHANISM"] != "bearer" {
 			t.Fatalf("got %v, want GEMINI_API_KEY_AUTH_MECHANISM=bearer", got)
+		}
+	})
+
+	t.Run("claude unsets nested session markers", func(t *testing.T) {
+		got := runtimeUnsetEnvKeysForBackend("claude")
+		want := []string{"CLAUDECODE"}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("non claude backend does not unset nested markers", func(t *testing.T) {
+		if got := runtimeUnsetEnvKeysForBackend("codex"); len(got) != 0 {
+			t.Fatalf("got %v, want nil/empty", got)
 		}
 	})
 }

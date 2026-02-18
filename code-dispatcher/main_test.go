@@ -264,6 +264,10 @@ func (d *drainBlockingCmd) SetEnv(env map[string]string) {
 	d.inner.SetEnv(env)
 }
 
+func (d *drainBlockingCmd) UnsetEnv(keys []string) {
+	d.inner.UnsetEnv(keys)
+}
+
 func (d *drainBlockingCmd) Process() processHandle {
 	return d.inner.Process()
 }
@@ -552,6 +556,21 @@ func (f *fakeCmd) SetEnv(env map[string]string) {
 	}
 	for k, v := range env {
 		f.env[k] = v
+	}
+}
+
+func (f *fakeCmd) UnsetEnv(keys []string) {
+	if len(keys) == 0 {
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, key := range keys {
+		for existing := range f.env {
+			if strings.EqualFold(existing, key) {
+				delete(f.env, existing)
+			}
+		}
 	}
 }
 
