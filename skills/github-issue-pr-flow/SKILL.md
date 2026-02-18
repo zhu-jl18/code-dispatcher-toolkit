@@ -11,6 +11,7 @@ description: "Autonomous GitHub issue-to-PR delivery workflow with review-signal
 - Keep traceability: every PR body must include `Closes #<primary_issue>`.
 - Keep scope discipline: one PR should close one primary issue chain.
 - Use `code-dispatcher --backend codex` only as backup for `critical`/`high` findings or hard debugging.
+- When review automation is rate-limited, switch to `code-dispatcher --backend codex` fallback review and publish findings to GitHub threads.
 
 ## Context Discovery
 - Detect repository and default base branch from `gh repo view`.
@@ -47,6 +48,7 @@ Execute phases in order with no user confirmation gates unless escalation rules 
 ### Phase 4: Collect Reviews and CI Signals
 - Wait a reasonable review window, then collect latest review and check-run states.
 - Do not block forever if external review tools stay silent; CI and maintainers remain the gate.
+- If CodeRabbit reports rate limit exhaustion, trigger fallback review flow in `references/review-playbook.md` and continue without waiting for CodeRabbit recovery.
 
 ### Phase 5: Triage Review Findings
 - Decide each finding independently: fix, rebut with evidence, or align with repo convention.
@@ -54,6 +56,7 @@ Execute phases in order with no user confirmation gates unless escalation rules 
 - Reply under each review comment and resolve each thread after handling.
 - Re-run CI after each push; keep looping until stable or escalation is required.
 - Limit autonomous rebut/fix loops to 2 rounds, then escalate if blocking findings remain.
+- During rapid push/re-review cycles, batch compatible fixes to reduce external review rate-limit pressure.
 
 ### Phase 6: Squash Merge and Closure
 - Merge using squash and delete remote branch.
@@ -72,5 +75,6 @@ Everything else should proceed autonomously.
 ## Failure Handling
 - External reviews absent: proceed with CI and maintainer review signals.
 - External review feedback conflicts: prioritize reproducible failures and test evidence.
+- CodeRabbit rate limit exceeded: run fallback PR review via `code-dispatcher --backend codex`, require it to post findings on GitHub, then triage those findings with the same standards.
 - Scope creep appears mid-flight: split to new issue(s) and keep current PR focused.
 - `gh` command fails: retry once; if still failing, report the blocking error and stop.
