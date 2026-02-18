@@ -35,15 +35,10 @@ Verification:
 3. Is there a smaller fix that preserves scope?
 4. Is rebuttal supported by concrete evidence?
 
-## Helpful Commands
-```bash
-# Read reviews
-gh pr view <pr_number> --json reviews --jq '.reviews[] | {author: .author.login, state: .state, submittedAt: .submittedAt}'
+## Required Signals Before Triage
+Collect these signals with any suitable `gh` query pattern:
+1. Review-level summary: `author`, `state`, `submittedAt`, `body` (allow truncated body).
+2. Line-level review comments/conversations for actionable findings.
+3. Latest check-run states for CI gating.
 
-# Read review comments
-REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-gh api repos/$REPO/pulls/<pr_number>/comments
-
-# Read checks
-gh pr checks <pr_number>
-```
+Do not start fix-or-rebut decisions if review body text is missing.
