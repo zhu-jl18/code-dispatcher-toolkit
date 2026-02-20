@@ -91,8 +91,8 @@ def _install_env_template(install_dir: Path, *, force: bool) -> None:
         "CODE_DISPATCHER_MAX_PARALLEL_WORKERS=0\n"
         "CODE_DISPATCHER_LOGGER_CLOSE_TIMEOUT_MS=5000\n\n"
         "# Backend model override (optional, leave empty to use CLI defaults)\n"
-        "# GEMINI_MODEL=\n"
-        "# CODEX_MODEL=\n"
+        "# CODE_DISPATCHER_GEMINI_MODEL=\n"
+        "# CODE_DISPATCHER_CODEX_MODEL=\n"
     )
     _write_if_missing(install_dir / ".env", env_template, force=force)
 

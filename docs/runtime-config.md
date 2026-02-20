@@ -45,11 +45,11 @@ All backends run with approval bypass hardcoded (no toggle):
 
 ### Backend Model Override
 
-- `GEMINI_MODEL`
+- `CODE_DISPATCHER_GEMINI_MODEL`
   - optional; if set, passes `-m <value>` to gemini CLI
   - example: `gemini-2.5-pro`
 
-- `CODEX_MODEL`
+- `CODE_DISPATCHER_CODEX_MODEL`
   - optional; if set, passes `-m <value>` to codex CLI
   - example: `o3`
 

@@ -199,7 +199,7 @@ func TestResolveBackendModel(t *testing.T) {
 	})
 
 	t.Run("gemini model from env", func(t *testing.T) {
-		setRuntimeSettingsForTest(map[string]string{"GEMINI_MODEL": "gemini-2.5-pro"})
+		setRuntimeSettingsForTest(map[string]string{"CODE_DISPATCHER_GEMINI_MODEL": "gemini-2.5-pro"})
 		t.Cleanup(resetRuntimeSettingsForTest)
 		if got := resolveBackendModel("gemini"); got != "gemini-2.5-pro" {
 			t.Fatalf("got %q, want gemini-2.5-pro", got)
@@ -207,7 +207,7 @@ func TestResolveBackendModel(t *testing.T) {
 	})
 
 	t.Run("codex model from env", func(t *testing.T) {
-		setRuntimeSettingsForTest(map[string]string{"CODEX_MODEL": "o3"})
+		setRuntimeSettingsForTest(map[string]string{"CODE_DISPATCHER_CODEX_MODEL": "o3"})
 		t.Cleanup(resetRuntimeSettingsForTest)
 		if got := resolveBackendModel("codex"); got != "o3" {
 			t.Fatalf("got %q, want o3", got)
@@ -215,7 +215,7 @@ func TestResolveBackendModel(t *testing.T) {
 	})
 
 	t.Run("whitespace trimmed", func(t *testing.T) {
-		setRuntimeSettingsForTest(map[string]string{"GEMINI_MODEL": "  gemini-2.5-flash  "})
+		setRuntimeSettingsForTest(map[string]string{"CODE_DISPATCHER_GEMINI_MODEL": "  gemini-2.5-flash  "})
 		t.Cleanup(resetRuntimeSettingsForTest)
 		if got := resolveBackendModel("gemini"); got != "gemini-2.5-flash" {
 			t.Fatalf("got %q, want gemini-2.5-flash", got)
@@ -224,7 +224,7 @@ func TestResolveBackendModel(t *testing.T) {
 }
 
 func TestGeminiBuildArgs_WithModel(t *testing.T) {
-	setRuntimeSettingsForTest(map[string]string{"GEMINI_MODEL": "gemini-2.5-pro"})
+	setRuntimeSettingsForTest(map[string]string{"CODE_DISPATCHER_GEMINI_MODEL": "gemini-2.5-pro"})
 	t.Cleanup(resetRuntimeSettingsForTest)
 
 	backend := GeminiBackend{}
@@ -237,7 +237,7 @@ func TestGeminiBuildArgs_WithModel(t *testing.T) {
 }
 
 func TestCodexBuildArgs_WithModel(t *testing.T) {
-	setRuntimeSettingsForTest(map[string]string{"CODEX_MODEL": "o3"})
+	setRuntimeSettingsForTest(map[string]string{"CODE_DISPATCHER_CODEX_MODEL": "o3"})
 	t.Cleanup(resetRuntimeSettingsForTest)
 
 	cfg := &Config{Mode: "new", WorkDir: "/tmp"}

@@ -60,7 +60,7 @@ func normalizeBackendName(name string) string {
 }
 
 func resolveBackendModel(backendName string) string {
-	key := strings.ToUpper(normalizeBackendName(backendName)) + "_MODEL"
+	key := "CODE_DISPATCHER_" + strings.ToUpper(normalizeBackendName(backendName)) + "_MODEL"
 	val, ok := lookupRuntimeSetting(key)
 	if !ok {
 		return ""

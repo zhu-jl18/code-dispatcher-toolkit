@@ -78,8 +78,8 @@ Runtime behavior (approval/bypass flags, timeout, parallel propagation rules, ba
 
 Optional: specify the model each backend should use in `~/.code-dispatcher/.env`:
 ```text
-GEMINI_MODEL=gemini-2.5-pro
-CODEX_MODEL=o3
+CODE_DISPATCHER_GEMINI_MODEL=gemini-2.5-pro
+CODE_DISPATCHER_CODEX_MODEL=o3
 ```
 Leave unset to use each CLI's default. Claude does not support model override via dispatcher.
 

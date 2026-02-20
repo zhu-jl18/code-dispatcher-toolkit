@@ -79,8 +79,8 @@ bash scripts/build-dist.sh
 
 可选：在 `~/.code-dispatcher/.env` 中指定后端使用的 model：
 ```text
-GEMINI_MODEL=gemini-2.5-pro
-CODEX_MODEL=o3
+CODE_DISPATCHER_GEMINI_MODEL=gemini-2.5-pro
+CODE_DISPATCHER_CODEX_MODEL=o3
 ```
 不设置则使用各 CLI 自身默认值。Claude 不支持通过 dispatcher 指定 model。
 
