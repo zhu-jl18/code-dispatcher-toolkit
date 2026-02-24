@@ -5,6 +5,8 @@
 </p>
 
 > A multi-backend AI coding toolkit built around the `code-dispatcher` CLI: executor + orchestration skills + extension templates.
+>
+> Receive task → select backend → build args → dispatch execution → collect results. That's dispatch.
 
 What you get:
 - `dev` skill: requirements clarification → plan → select backend → parallel execution (DAG scheduling) → verification
