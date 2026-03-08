@@ -11,7 +11,7 @@
 What you get:
 - `dev` skill: requirements clarification → plan → select backend → parallel execution (DAG scheduling) → verification
 - `wave` skill: iterative flat-parallel execution strategy (host agent dynamically decomposes each wave → parallel dispatch → review results → next wave)
-- `code-dispatcher` executor & skill: Go executor; unified 3 backends `codex/claude/gemini`; core mechanisms `--parallel` & `--resume`; usage guide (for AI consumption, full and flash variants)
+- `code-dispatcher` executor & skill: Go executor; unified 3 backends `codex/claude/gemini`; core mechanisms `--parallel` & `--resume`; usage guide for AI consumption as the single primary skill
 - `code-council` skill: multi-perspective parallel code review (2–3 AI reviewers in parallel + host agent final pass)
 - `github-issue-pr-flow` skill: autonomous issue-to-PR delivery (decompose → implement → open PR → handle reviews → squash merge)
 - `pr-review-reply` skill: autonomous bot-review triage on PRs (Gemini / CodeRabbit etc.) — verify → fix or rebut → reply in thread → resolve
@@ -47,7 +47,7 @@ Installer outputs:
 Not automated (manual by design):
 - No auto-copy of `skills/` into your target CLI root/project scope
 - Manually copy what you need based on your target CLI:
-  - Pick from `skills/*` (for example: `skills/dev`, `skills/wave`, `skills/code-dispatcher` or `skills/code-dispatcher-flash`, `skills/code-council`, `skills/github-issue-pr-flow`, `skills/pr-review-reply`, `skills/cc-cx-review-loop`)
+  - Pick from `skills/*` (for example: `skills/dev`, `skills/wave`, `skills/code-dispatcher`, `skills/code-council`, `skills/github-issue-pr-flow`, `skills/pr-review-reply`, `skills/cc-cx-review-loop`)
 - No auto-injection of `memory/CLAUDE-add.md` into your user-level config
   - This file contains `/dev` workflow conventions (Claude Code handles planning and verification; edits and tests must go through code-dispatcher skills)
   - Manually append its contents to your own `~/.claude/CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex etc.)

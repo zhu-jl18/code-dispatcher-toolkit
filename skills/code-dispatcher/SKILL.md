@@ -1,6 +1,6 @@
 ---
 name: code-dispatcher
-description: Execute code-dispatcher for multi-backend AI code tasks. Supports Codex, Claude, Gemini, with file references (@syntax) and structured output.
+description: Execute code-dispatcher for multi-backend AI code tasks. Use when the user explicitly requests a specific backend (Codex, Claude, or Gemini), mentions code-dispatcher, or when a skill or command definition declares a dependency on this skill. Supports pluggable backends (codex/claude/gemini), parallel task execution with DAG scheduling, session resume, and structured output.
 ---
 
 # code-dispatcher Integration
@@ -66,6 +66,16 @@ code-dispatcher --backend gemini "simple task" [working_dir]
   - **Full (`--full-output`)**: Complete task messages. Use only when debugging specific failures.
   - Scope: `--full-output` is valid only with `--parallel`; single-task mode does not support this flag.
   - Backend behavior: mode selection is dispatcher-level and works the same for `codex | claude | gemini`.
+
+## Utility Commands
+
+- `code-dispatcher --help`
+  - Print CLI usage, supported backends, common mistakes, runtime config hints, and exit codes.
+
+- `code-dispatcher --cleanup`
+  - Remove orphaned `code-dispatcher-*.log` files from the temp directory.
+  - Safe behavior: logs for active dispatcher processes are kept; only stale/orphaned logs are deleted.
+  - Use this when repeated runs leave many old temp logs behind.
 
 ## Return Format:
 
@@ -161,6 +171,21 @@ Resume mode relies on backend session context.
 - `--backend` is a required global fallback; tasks without `backend` use it. Usually set to `codex`.
 - `backend` inside a task block overrides the global fallback for that task.
 - Tasks without `dependencies` are independent and can run concurrently.
+
+Supported metadata fields inside each `---TASK---` block:
+- `id` (required): unique task identifier.
+- `backend`: override the global `--backend` for this task.
+- `workdir`: working directory for this task. Default: `.`.
+- `dependencies`: comma-separated task IDs this task depends on.
+- `session_id`: resume an existing session; automatically switches this task to resume mode.
+
+Validation rules:
+- `---CONTENT---` is required for every task block.
+- Lines without `:` are ignored.
+- Unknown metadata keys with `:` fail fast with a parse error.
+- `id` must be present and unique.
+- `workdir: -` is invalid.
+- `session_id` cannot be empty when present.
 
 **1) Basic parallel (independent tasks, global backend fallback)**
 ```bash
@@ -334,6 +359,15 @@ Timeout policy: always set explicit timeout by task complexity; do not rely on i
 
 Note: Global --backend is required; per-task backend is optional
 ```
+
+## Exit Codes
+
+- `0`: Success.
+- `1`: General error (for example: missing args, no output, invalid config).
+- `124`: Timeout.
+- `127`: Backend command not found in `PATH`.
+- `130`: Interrupted (`Ctrl+C` / `SIGINT`).
+- Other non-zero codes: passthrough from the backend process.
 
 ## Critical Rules
 

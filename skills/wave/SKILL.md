@@ -1,6 +1,6 @@
 ---
 name: wave
-description: "Execution-phase parallel acceleration strategy. Use when the host agent already understands the task and needs to execute work efficiently via iterative rounds of flat-parallel dispatch. Each wave: decompose remaining work into independent tasks → dispatch via code-dispatcher --parallel (no dependencies) → review results → plan next wave. Depends on code-dispatcher or code-dispatcher-flash skill."
+description: "Execution-phase parallel acceleration strategy. Use when the host agent already understands the task and needs to execute work efficiently via iterative rounds of flat-parallel dispatch. Each wave: decompose remaining work into independent tasks → dispatch via code-dispatcher --parallel (no dependencies) → review results → plan next wave. Depends on the code-dispatcher skill."
 ---
 
 # /wave — Iterative Flat-Parallel Execution
