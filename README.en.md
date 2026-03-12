@@ -15,7 +15,7 @@ What you get:
 - `code-council` skill: multi-perspective parallel code review (2–3 AI reviewers in parallel + host agent final pass)
 - `github-issue-pr-flow` skill: autonomous issue-to-PR delivery (decompose → implement → open PR → handle reviews → squash merge)
 - `pr-review-reply` skill: autonomous bot-review triage on PRs (Gemini / CodeRabbit etc.) — verify → fix or rebut → reply in thread → resolve
-- `cc-cx-review-loop` extension: implement → auto-review (code-dispatcher runs Diff + Holistic reviewers in parallel) → address feedback → done
+- `codex-review-loop` extension: implement → Codex multi-angle auto-review (Diff + Holistic) → address feedback → done
 - `harness` extension: Claude Code long-running session harness (durable state, recovery, dependency scheduling, Stop/SessionStart hooks)
 
 ## Backend Positioning (Recommended)
@@ -48,7 +48,7 @@ Installer outputs:
 Not automated (manual by design):
 - No auto-copy of `skills/` into your target CLI root/project scope
 - Manually copy what you need based on your target CLI:
-  - Pick from `skills/*` (for example: `skills/dev`, `skills/wave`, `skills/code-dispatcher`, `skills/code-council`, `skills/github-issue-pr-flow`, `skills/pr-review-reply`, `skills/cc-cx-review-loop`, `skills/harness`)
+  - Pick from `skills/*` (for example: `skills/dev`, `skills/wave`, `skills/code-dispatcher`, `skills/code-council`, `skills/github-issue-pr-flow`, `skills/pr-review-reply`, `skills/codex-review-loop`, `skills/harness`)
 - No auto-injection of `memory/CLAUDE-add.md` into your user-level config
   - This file contains `/dev` workflow conventions (Claude Code handles planning and verification; edits and tests must go through code-dispatcher skills)
   - Manually append its contents to your own `~/.claude/CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex etc.)

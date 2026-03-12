@@ -1,5 +1,5 @@
 ---
-description: "Cancel an active review loop"
+description: "Cancel an active codex review loop"
 allowed-tools:
   - Bash(test -f .claude/review-loop.local.md *)
   - Bash(rm -f .claude/review-loop.local.md)

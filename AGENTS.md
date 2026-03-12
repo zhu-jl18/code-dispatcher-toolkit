@@ -10,7 +10,7 @@ code-dispatcher is a multi-backend AI coding toolkit: a Go CLI that dispatches t
 
 ## Repository Structure
 - `code-dispatcher/`: Go source (main package and backend dispatch logic)
-- `skills/`: independent modules — skills (`dev`, `wave`, `code-dispatcher`, `code-council`, `github-issue-pr-flow`, `pr-review-reply`) and extensions (`cc-cx-review-loop`)
+- `skills/`: independent modules — skills (`dev`, `wave`, `code-dispatcher`, `code-council`, `github-issue-pr-flow`, `pr-review-reply`) and extensions (`codex-review-loop`)
 - `docs/`: documentation (`runtime-config.md`)
 - `scripts/`: build scripts (`build-dist.sh`)
 - `install.py` / `uninstall.py`: installer and uninstaller
