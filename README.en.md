@@ -1,122 +1,203 @@
-# code-dispatcher-toolkit
+<div align="center">
 
-<p align="center">
+<h1>CODE-DISPATCHER TOOLKIT</h1>
+<p><strong>Multi-Backend AI Coding Toolkit</strong></p>
+<p>Dispatch tasks across Codex, Claude, and Gemini with<br>reusable Skills, Bundles, and workflow tooling.</p>
+
+<p>
   <a href="README.md">中文</a> | <strong>English</strong>
 </p>
 
-> A multi-backend AI coding toolkit built around the `code-dispatcher` CLI: executor + orchestration skills + extension templates.
->
-> Receive task → select backend → build args → dispatch execution → collect results. That's dispatch.
+<p>
+  <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Bash-4.0+-4EAA25?logo=gnu-bash&logoColor=white" alt="Bash">
+  <br>
+  <img src="https://img.shields.io/badge/Backend-Codex-412991?logo=data:image/svg%2Bxml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgcm9sZT0iaW1nIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHRpdGxlPk9wZW5BSTwvdGl0bGU+PHBhdGggZD0iTTIyLjI4MTkgOS44MjExYTUuOTg0NyA1Ljk4NDcgMCAwIDAtLjUxNTctNC45MTA4IDYuMDQ2MiA2LjA0NjIgMCAwIDAtNi41MDk4LTIuOUE2LjA2NTEgNi4wNjUxIDAgMCAwIDQuOTgwNyA0LjE4MThhNS45ODQ3IDUuOTg0NyAwIDAgMC0zLjk5NzcgMi45IDYuMDQ2MiA2LjA0NjIgMCAwIDAgLjc0MjcgNy4wOTY2IDUuOTggNS45OCAwIDAgMCAuNTExIDQuOTEwNyA2LjA1MSA2LjA1MSAwIDAgMCA2LjUxNDYgMi45MDAxQTUuOTg0NyA1Ljk4NDcgMCAwIDAgMTMuMjU5OSAyNGE2LjA1NTcgNi4wNTU3IDAgMCAwIDUuNzcxOC00LjIwNTggNS45ODk0IDUuOTg5NCAwIDAgMCAzLjk5NzctMi45MDAxIDYuMDU1NyA2LjA1NTcgMCAwIDAtLjc0NzUtNy4wNzI5em0tOS4wMjIgMTIuNjA4MWE0LjQ3NTUgNC40NzU1IDAgMCAxLTIuODc2NC0xLjA0MDhsLjE0MTktLjA4MDQgNC43NzgzLTIuNzU4MmEuNzk0OC43OTQ4IDAgMCAwIC4zOTI3LS42ODEzdi02LjczNjlsMi4wMiAxLjE2ODZhLjA3MS4wNzEgMCAwIDEgLjAzOC4wNTJ2NS41ODI2YTQuNTA0IDQuNTA0IDAgMCAxLTQuNDk0NSA0LjQ5NDR6bS05LjY2MDctNC4xMjU0YTQuNDcwOCA0LjQ3MDggMCAwIDEtLjUzNDYtMy4wMTM3bC4xNDIuMDg1MiA0Ljc4MyAyLjc1ODJhLjc3MTIuNzcxMiAwIDAgMCAuNzgwNiAwbDUuODQyOC0zLjM2ODV2Mi4zMzI0YS4wODA0LjA4MDQgMCAwIDEtLjAzMzIuMDYxNUw5Ljc0IDE5Ljk1MDJhNC40OTkyIDQuNDk5MiAwIDAgMS02LjE0MDgtMS42NDY0ek0yLjM0MDggNy44OTU2YTQuNDg1IDQuNDg1IDAgMCAxIDIuMzY1NS0xLjk3MjhWMTEuNmEuNzY2NC43NjY0IDAgMCAwIC4zODc5LjY3NjVsNS44MTQ0IDMuMzU0My0yLjAyMDEgMS4xNjg1YS4wNzU3LjA3NTcgMCAwIDEtLjA3MSAwbC00LjgzMDMtMi43ODY1QTQuNTA0IDQuNTA0IDAgMCAxIDIuMzQwOCA3Ljg3MnptMTYuNTk2MyAzLjg1NThMMTMuMTAzOCA4LjM2NCAxNS4xMTkyIDcuMmEuMDc1Ny4wNzU3IDAgMCAxIC4wNzEgMGw0LjgzMDMgMi43OTEzYTQuNDk0NCA0LjQ5NDQgMCAwIDEtLjY3NjUgOC4xMDQydi01LjY3NzJhLjc5Ljc5IDAgMCAwLS40MDctLjY2N3ptMi4wMTA3LTMuMDIzMWwtLjE0Mi0uMDg1Mi00Ljc3MzUtMi43ODE4YS43NzU5Ljc3NTkgMCAwIDAtLjc4NTQgMEw5LjQwOSA5LjIyOTdWNi44OTc0YS4wNjYyLjA2NjIgMCAwIDEgLjAyODQtLjA2MTVsNC44MzAzLTIuNzg2NmE0LjQ5OTIgNC40OTkyIDAgMCAxIDYuNjgwMiA0LjY2ek04LjMwNjUgMTIuODYzbC0yLjAyLTEuMTYzOGEuMDgwNC4wODA0IDAgMCAxLS4wMzgtLjA1NjdWNi4wNzQyYTQuNDk5MiA0LjQ5OTIgMCAwIDEgNy4zNzU3LTMuNDUzN2wtLjE0Mi4wODA1TDguNzA0IDUuNDU5YS43OTQ4Ljc5NDggMCAwIDAtLjM5MjcuNjgxM3ptMS4wOTc2LTIuMzY1NGwyLjYwMi0xLjQ5OTggMi42MDY5IDEuNDk5OHYyLjk5OTRsLTIuNTk3NCAxLjQ5OTctMi42MDY3LTEuNDk5N1oiLz48L3N2Zz4=" alt="Codex">
+  <img src="https://img.shields.io/badge/Backend-Claude-D4A27F?logo=anthropic&logoColor=white" alt="Claude">
+  <img src="https://img.shields.io/badge/Backend-Gemini-4285F4?logo=google&logoColor=white" alt="Gemini">
+</p>
 
-What you get:
-- `dev` skill: requirements clarification → plan → select backend → parallel execution (DAG scheduling) → verification
-- `wave` skill: iterative flat-parallel execution strategy (host agent dynamically decomposes each wave → parallel dispatch → review results → next wave)
-- `code-dispatcher` executor & skill: Go executor; unified 3 backends `codex/claude/gemini`; core mechanisms `--parallel` & `--resume`; usage guide for AI consumption as the single primary skill
-- `code-council` skill: multi-perspective parallel code review (2–3 AI reviewers in parallel + host agent final pass)
-- `github-issue-pr-flow` skill: autonomous issue-to-PR delivery (decompose → implement → open PR → handle reviews → squash merge)
-- `pr-review-reply` skill: autonomous bot-review triage on PRs (Gemini / CodeRabbit etc.) — verify → fix or rebut → reply in thread → resolve
-- `codex-review-loop` extension: implement → Codex multi-angle auto-review (Diff + Holistic) → address feedback → done
-- `harness` extension: Claude Code long-running session harness (durable state, recovery, dependency scheduling, Stop/SessionStart hooks)
+</div>
 
-## Backend Positioning (Recommended)
+A multi-backend AI coding toolkit built around the `code-dispatcher` CLI: executor + Skills + Bundles.
+
+## Why Dispatcher
+
+Because the meaning of this word fits the core function of this tool:
+
+<div align="center">
+<strong>Receive Task</strong> &nbsp;→&nbsp;
+<strong>Select Backend</strong> &nbsp;→&nbsp;
+<strong>Build Args</strong> &nbsp;→&nbsp;
+<strong>Dispatch Execution</strong> &nbsp;→&nbsp;
+<strong>Collect Results</strong>
+</div>
+
+## Components
+
+### Dispatcher CLI
+
+`code-dispatcher` is a multi-backend task dispatcher that unifies `codex`, `claude`, and `gemini` AI coding tools. Core capabilities include:
+
+- Multi-backend support: switch between or parallelize multiple AI backends via `--backend`
+- Parallel execution: use `--parallel` for DAG-based concurrent task scheduling
+- Session resume: use `--resume` to continue unfinished tasks after context resets
+- Unified config: single-point configuration via `~/.code-dispatcher/.env` for all backends
+
+Backend positioning (recommended only, can specify freely):
 
 - `codex`: complex logic, bug fixes, optimization & refactoring
 - `claude`: quick tasks, review, supplementary analysis
 - `gemini`: frontend UI/UX prototyping, styling, and interaction polish
-- Invocation rule: all backends must be invoked through `code-dispatcher`; do not call `codex` / `claude` / `gemini` directly.
 
-## Install (WSL2/Linux + macOS + Windows)
+> [!NOTE]
+> Tool `code-dispatcher` core idea is based on the `codeagent wrapper` from [`cexll/myclaude`](https://github.com/cexll/myclaude), with substantial refactoring.
 
-Default install path: download the current-platform binary from GitHub Release tag `latest` (no Go required).
+### Skills
+
+Note: "Dependency" indicates whether the skill relies on the code-dispatcher CLI for scheduling and execution.
+
+| Name | Purpose | Dependency |
+| --- | --- | --- |
+| `code-dispatcher` | Executor usage guide; unified 3 backends `codex/claude/gemini`; core mechanisms `--parallel` and `--resume` | Required |
+| `dev` | Requirements clarification → plan → select backend → parallel execution (DAG scheduling) → verification | Required |
+| `wave` | Iterative wave-based parallel execution (host agent decomposes each wave → parallel dispatch → review results → next wave) | Required |
+| `code-council` | Multi-perspective parallel code review (2–3 AI reviewers in parallel + host agent final pass) | Required |
+| `github-issue-pr-flow` | Autonomous issue-to-PR delivery (decompose → implement → open PR → handle reviews → squash merge) | Optional |
+| `pr-review-reply` | Autonomous bot-review triage on PRs (Gemini / CodeRabbit etc.) → verify → fix or rebut → reply in thread → resolve | Optional |
+
+### Bundles
+
+| Name | Purpose | Dependency |
+| --- | --- | --- |
+| `codex-review-loop` | Claude Code review loop bundle; composed of `commands/`, `hooks/`, `settings.json`; triggers Codex review on Stop | No |
+| `harness` | Claude Code long-running task bundle; provides state persistence, recovery, dependency scheduling, and SessionStart/Stop hooks | No |
+
+> [!NOTE]
+> Some bundles are not original to this repository — brought here for easier personal management and installation.
+> - `harness` is ported from [`cexll/myclaude`](https://github.com/cexll/myclaude).
+> - `codex-review-loop` is adapted from [`hamelsmu/claude-review-loop`](https://github.com/hamelsmu/claude-review-loop).
+>
+> See each bundle README for the specific upstream relationship, adaptation scope, and toolkit-specific packaging details.
+
+## Installation
+
+### Step 1: Code Dispatcher CLI Core Installation
+
+The installation script is cross-platform: WSL2/Linux + macOS + Windows. By default, it downloads the current platform binary from GitHub Release `latest`:
 
 ```bash
 python3 install.py
 ```
 
-Optional:
+Optional parameters:
+
 ```bash
 python3 install.py --install-dir ~/.code-dispatcher --force
 python3 install.py --skip-dispatcher
-python3 install.py --repo zhu-jl18/code-dispatcher-toolkit --release-tag latest
 ```
 
-Installer outputs:
-- `~/.code-dispatcher/.env` (single runtime config source)
-- `~/.code-dispatcher/prompts/*-prompt.md` (per-backend default prompt templates; clear to disable injection)
-- `~/.code-dispatcher/bin/code-dispatcher` (or `.exe` on Windows)
+The script installs the following:
 
-Not automated (manual by design):
-- No auto-copy of `skills/` into your target CLI root/project scope
-- Manually copy what you need based on your target CLI:
-  - Pick from `skills/*` (for example: `skills/dev`, `skills/wave`, `skills/code-dispatcher`, `skills/code-council`, `skills/github-issue-pr-flow`, `skills/pr-review-reply`, `skills/codex-review-loop`, `skills/harness`)
-- No auto-injection of `memory/CLAUDE-add.md` into your user-level config
-  - This file contains `/dev` workflow conventions (Claude Code handles planning and verification; edits and tests must go through code-dispatcher skills)
-  - Manually append its contents to your own `~/.claude/CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex etc.)
+- `~/.code-dispatcher/.env`: single runtime config source
+- `~/.code-dispatcher/prompts/*-prompt.md`: default prompt templates for each backend (editable; leave empty to disable injection)
+- `~/.code-dispatcher/bin/code-dispatcher` (`.exe` on Windows, etc.)
 
-Notes:
-- Running `install.py` under WSL installs the Linux binary; on macOS (Apple Silicon) it installs the Darwin arm64 binary; on Windows it installs the `.exe`.
-- Requires network access to GitHub Releases; use `--skip-dispatcher` if you only need runtime config/assets.
-- Windows PATH: different host agents use different shells. PowerShell/cmd reads the Windows user PATH; Git Bash (e.g. Claude Code) requires `export PATH="$HOME/.code-dispatcher/bin:$PATH"` in `~/.bashrc`. `install.py` prints setup instructions for both shells.
+**Important**: Different platforms have different code agent shell environments, so they cannot all be assumed to follow the same execution pattern.
 
-## Local Build (Optional)
+`install.py` outputs persistence commands for common shells (Windows: PowerShell, CMD, Git Bash; Non-Windows: Bash, Zsh, Fish):
 
 ```bash
-bash scripts/build-dist.sh
+Windows PowerShell:
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$HOME\.code-dispatcher\bin", "User")
+
+Windows CMD:
+setx PATH "%PATH%;%USERPROFILE%\.code-dispatcher\bin"
+
+Git Bash (e.g. Claude Code on Windows):
+echo 'export PATH="$HOME/.code-dispatcher/bin:$PATH"' >> ~/.bashrc
+
+Bash (e.g. WSL/Linux):
+echo 'export PATH="$PATH:$HOME/.code-dispatcher/bin"' >> ~/.bashrc
+
+Zsh (e.g. macOS default):
+echo 'export PATH="$PATH:$HOME/.code-dispatcher/bin"' >> ~/.zshrc
+
+Fish:
+echo 'set -gx PATH "$HOME/.code-dispatcher/bin" $PATH' >> ~/.config/fish/config.fish
 ```
 
-Local artifacts (not tracked by git by default):
-- `dist/code-dispatcher-linux-amd64`
-- `dist/code-dispatcher-darwin-arm64`
-- `dist/code-dispatcher-windows-amd64.exe`
+### Step 2: Install Code Dispatcher Skill
 
-## Prompt Injection (Default-On)
+Copy the `code-dispatcher` skill to the appropriate directory based on your target code agent tool's configuration. Global installation is recommended. Typical locations:
 
-Per-backend prompt files, installed from the repo `prompts/` directory with default content:
-- `~/.code-dispatcher/prompts/codex-prompt.md`
-- `~/.code-dispatcher/prompts/claude-prompt.md`
-- `~/.code-dispatcher/prompts/gemini-prompt.md`
+- General: `~/.agents/skills`
+- Claude Code: `~/.claude/skills`
+- Codex CLI: `~/.codex/skills`
+- OpenCode: `~/.config/opencode/skills`
+- Gemini CLI: `~/.gemini/skills`
 
-Defaults tell each backend: you are a worker dispatched by code-dispatcher, this is an end-to-end call, don't stop midway, freely explore the codebase for context.
+### Step 3: Select Skills / Bundles
 
-Behavior:
-- code-dispatcher loads the per-backend prompt and prepends it only if it has non-empty content.
-- Empty/whitespace-only or missing prompt files behave like "no injection".
-- To customize: edit files under `~/.code-dispatcher/prompts/` directly, or modify the repo `prompts/` dir and re-run `install.py --force`.
+Refer to `docs/skills-and-bundles.en.md` for specific purposes, then select the functional modules you need:
 
-Runtime behavior (approval/bypass flags, timeout, parallel propagation rules, backend model override):
-- `docs/runtime-config.md`
+**Skills**: Skills are cross-agent functional modules. The core is the `SKILL.md` definition file, and some also include `references/` documentation. When installing, copy the corresponding skill directory to the target agent's skills directory. Taking Claude as an example:
+- Global: `~/.claude/skills/<skill-name>/`
+- Project-level: `<path to your project>/.claude/skills/<skill-name>/`
 
-Optional: specify the model each backend should use in `~/.code-dispatcher/.env`:
+The `dev` skill is recommended to be used with `templates/dev-skill-constraint.md` injected into user-level configuration. Typical usage:
+
+**Bundles**: Bundles are Claude Code-specific packages, usually containing hooks and settings, and some also include commands or skill definitions. Installation steps vary by bundle:
+- If containing `commands/`: copy to `.claude/commands/`
+- If containing `hooks/`: copy to `.claude/hooks/`, and ensure scripts have execute permissions
+- If containing `SKILL.md`: copy `SKILL.md` (and optional `references/`) to `.claude/skills/<bundle-name>/`
+- Merge hooks configuration from `settings.json` into `.claude/settings.json` or `.claude/settings.local.json`
+
 ```text
-CODE_DISPATCHER_GEMINI_MODEL=gemini-2.5-pro
-CODE_DISPATCHER_CODEX_MODEL=o3
-```
-Leave unset to use each CLI's default. Claude does not support model override via dispatcher.
+# Explicit trigger
+/dev "I want to implement X"
 
-## Usage
-
-Development workflow (one-shot DAG):
-```text
-/dev "implement X"
+# Keyword trigger
+use dispatcher --codex to fix the bug we just discussed
 ```
 
-Development workflow (iterative waves):
-```text
-/wave "implement X"
-```
 
-Code review:
-```text
-Review @src/auth/ using code-council
-```
+### Optional Configuration
 
-## Dev
+Runtime parameters are unified in `~/.code-dispatcher/.env`. Configurable items include:
+
+- Executor timeout parameters
+- Executor parallel worker limit
+- Executor log output settings
+- Invoked backend model override (codex/gemini only)
+
+For full field definitions, see: [docs/runtime-config.en.md](docs/runtime-config.en.md). If not configured, default parameters will be used.
+
+## Development / Testing
+
+### Prerequisites
+
+- Go: `1.21` (`code-dispatcher/go.mod`)
+- Python: `3.9+` (`install.py` uses `list[str]`)
+- Bash: for local build scripts (`scripts/build-dist.sh`)
+
+### Running Tests
 
 ```bash
 cd code-dispatcher
 go test ./...
+
+# Verify local build
+cd ..
+bash scripts/build-dist.sh
+
+# Verify install script syntax and template references
+python3 -m py_compile install.py
+
+# Non-polluting install regression test (using temp directory)
+tmpdir="$(mktemp -d)"
+python3 install.py --install-dir "$tmpdir/.code-dispatcher" --skip-dispatcher --force
+python3 install.py --install-dir "$tmpdir/.code-dispatcher" --force
+rm -rf "$tmpdir"
 ```
-
-## Acknowledgments
-
-Original inspiration and partial code from [`cexll/myclaude`](https://github.com/cexll/myclaude), with thanks.

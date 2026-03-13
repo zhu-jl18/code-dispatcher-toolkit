@@ -1,123 +1,204 @@
-# code-dispatcher-toolkit
+<div align="center">
 
-<p align="center">
+<h1>CODE-DISPATCHER TOOLKIT</h1>
+<p><strong>Multi-Backend AI Coding Toolkit</strong></p>
+<p>Dispatch tasks across Codex, Claude, and Gemini with<br>reusable Skills, Bundles, and workflow tooling.</p>
+
+<p>
   <strong>中文</strong> | <a href="README.en.md">English</a>
 </p>
 
-> 基于 `code-dispatcher` CLI 构建的多后端 AI 编码工具集：执行器 + 编排 skill + 扩展模板。
->
-> 接收任务 → 选后端 → 构建参数 → 分发执行 → 收集结果。这就是 dispatch。
+<p>
+  <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Bash-4.0+-4EAA25?logo=gnu-bash&logoColor=white" alt="Bash">
+  <br>
+  <img src="https://img.shields.io/badge/Backend-Codex-412991?logo=data:image/svg%2Bxml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgcm9sZT0iaW1nIiB2aWV3Qm94PSIwIDAgMjQgMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHRpdGxlPk9wZW5BSTwvdGl0bGU+PHBhdGggZD0iTTIyLjI4MTkgOS44MjExYTUuOTg0NyA1Ljk4NDcgMCAwIDAtLjUxNTctNC45MTA4IDYuMDQ2MiA2LjA0NjIgMCAwIDAtNi41MDk4LTIuOUE2LjA2NTEgNi4wNjUxIDAgMCAwIDQuOTgwNyA0LjE4MThhNS45ODQ3IDUuOTg0NyAwIDAgMC0zLjk5NzcgMi45IDYuMDQ2MiA2LjA0NjIgMCAwIDAgLjc0MjcgNy4wOTY2IDUuOTggNS45OCAwIDAgMCAuNTExIDQuOTEwNyA2LjA1MSA2LjA1MSAwIDAgMCA2LjUxNDYgMi45MDAxQTUuOTg0NyA1Ljk4NDcgMCAwIDAgMTMuMjU5OSAyNGE2LjA1NTcgNi4wNTU3IDAgMCAwIDUuNzcxOC00LjIwNTggNS45ODk0IDUuOTg5NCAwIDAgMCAzLjk5NzctMi45MDAxIDYuMDU1NyA2LjA1NTcgMCAwIDAtLjc0NzUtNy4wNzI5em0tOS4wMjIgMTIuNjA4MWE0LjQ3NTUgNC40NzU1IDAgMCAxLTIuODc2NC0xLjA0MDhsLjE0MTktLjA4MDQgNC43NzgzLTIuNzU4MmEuNzk0OC43OTQ4IDAgMCAwIC4zOTI3LS42ODEzdi02LjczNjlsMi4wMiAxLjE2ODZhLjA3MS4wNzEgMCAwIDEgLjAzOC4wNTJ2NS41ODI2YTQuNTA0IDQuNTA0IDAgMCAxLTQuNDk0NSA0LjQ5NDR6bS05LjY2MDctNC4xMjU0YTQuNDcwOCA0LjQ3MDggMCAwIDEtLjUzNDYtMy4wMTM3bC4xNDIuMDg1MiA0Ljc4MyAyLjc1ODJhLjc3MTIuNzcxMiAwIDAgMCAuNzgwNiAwbDUuODQyOC0zLjM2ODV2Mi4zMzI0YS4wODA0LjA4MDQgMCAwIDEtLjAzMzIuMDYxNUw5Ljc0IDE5Ljk1MDJhNC40OTkyIDQuNDk5MiAwIDAgMS02LjE0MDgtMS42NDY0ek0yLjM0MDggNy44OTU2YTQuNDg1IDQuNDg1IDAgMCAxIDIuMzY1NS0xLjk3MjhWMTEuNmEuNzY2NC43NjY0IDAgMCAwIC4zODc5LjY3NjVsNS44MTQ0IDMuMzU0My0yLjAyMDEgMS4xNjg1YS4wNzU3LjA3NTcgMCAwIDEtLjA3MSAwbC00LjgzMDMtMi43ODY1QTQuNTA0IDQuNTA0IDAgMCAxIDIuMzQwOCA3Ljg3MnptMTYuNTk2MyAzLjg1NThMMTMuMTAzOCA4LjM2NCAxNS4xMTkyIDcuMmEuMDc1Ny4wNzU3IDAgMCAxIC4wNzEgMGw0LjgzMDMgMi43OTEzYTQuNDk0NCA0LjQ5NDQgMCAwIDEtLjY3NjUgOC4xMDQydi01LjY3NzJhLjc5Ljc5IDAgMCAwLS40MDctLjY2N3ptMi4wMTA3LTMuMDIzMWwtLjE0Mi0uMDg1Mi00Ljc3MzUtMi43ODE4YS43NzU5Ljc3NTkgMCAwIDAtLjc4NTQgMEw5LjQwOSA5LjIyOTdWNi44OTc0YS4wNjYyLjA2NjIgMCAwIDEgLjAyODQtLjA2MTVsNC44MzAzLTIuNzg2NmE0LjQ5OTIgNC40OTkyIDAgMCAxIDYuNjgwMiA0LjY2ek04LjMwNjUgMTIuODYzbC0yLjAyLTEuMTYzOGEuMDgwNC4wODA0IDAgMCAxLS4wMzgtLjA1NjdWNi4wNzQyYTQuNDk5MiA0LjQ5OTIgMCAwIDEgNy4zNzU3LTMuNDUzN2wtLjE0Mi4wODA1TDguNzA0IDUuNDU5YS43OTQ4Ljc5NDggMCAwIDAtLjM5MjcuNjgxM3ptMS4wOTc2LTIuMzY1NGwyLjYwMi0xLjQ5OTggMi42MDY5IDEuNDk5OHYyLjk5OTRsLTIuNTk3NCAxLjQ5OTctMi42MDY3LTEuNDk5N1oiLz48L3N2Zz4=" alt="Codex">
+  <img src="https://img.shields.io/badge/Backend-Claude-D4A27F?logo=anthropic&logoColor=white" alt="Claude">
+  <img src="https://img.shields.io/badge/Backend-Gemini-4285F4?logo=google&logoColor=white" alt="Gemini">
+</p>
 
-你会得到什么：
-- `dev` skill：需求澄清 → 计划 → 选择后端 → 并行执行（DAG 调度） → 验证
-- `wave` skill：迭代式平级并行执行策略（host agent 每波动态拆任务 → 并行派单 → 看结果 → 下一波）
-- `code-dispatcher` executor & skill：Go 写的执行器；统一 3 个后端 `codex/claude/gemini`；核心机制 `--parallel` & `--resume`；配套使用指南（给 AI 看的一套主线说明）
-- `code-council` skill：多视角并行代码评审（2–3 个 AI reviewer 并行 + host agent 终审）
-- `github-issue-pr-flow` skill：自主 Issue → PR 交付流程（分解 Issue → 实现 → 开 PR → 处理 review → squash merge）
-- `pr-review-reply` skill：自主处理 PR 上的 bot review（Gemini / CodeRabbit 等）——验证 → 修复或反驳 → 回复线程 → resolve
-- `codex-review-loop` 扩展：实现 → Codex 多视角自动 review（Diff + Holistic） → 处理反馈 → 完成
-- `harness` 扩展：Claude Code 长任务 harness（状态持久化、失败恢复、依赖调度、Stop/SessionStart hooks）
+</div>
 
-## 后端定位（仅推荐，可自由指定）
+基于 `code-dispatcher` CLI 构建的多后端 AI 编码工具集：执行器 + Skills + Bundles。
+
+## 为什么叫 Dispatcher
+
+因为这个词的含义很符合这个工具的核心功能：
+
+<div align="center">
+<strong>接收任务</strong> &nbsp;→&nbsp;
+<strong>选后端</strong> &nbsp;→&nbsp;
+<strong>构建参数</strong> &nbsp;→&nbsp;
+<strong>分发执行</strong> &nbsp;→&nbsp;
+<strong>收集结果</strong>
+</div>
+
+## 组件
+
+### Dispatcher CLI
+
+`code-dispatcher` 是一个多后端任务分发器，统一调度 `codex`、`claude`、`gemini` 三个 AI 编码工具。核心能力包括：
+
+- 多后端支持：通过 `--backend` 自由切换或并行调用多个 AI 后端
+- 并行执行：使用 `--parallel` 基于 DAG 调度同时运行多个独立任务
+- 会话恢复：使用 `--resume` 在上下文重置后继续执行未完成的任务
+- 统一配置：单点配置 `~/.code-dispatcher/.env` 管理所有后端参数
+
+后端定位（仅推荐，可自由指定）：
 
 - `codex`：复杂逻辑、bug 修复、优化重构
 - `claude`：快速任务、review、补充分析
 - `gemini`：前端 UI/UX 原型、样式和交互细化
-- 调用入口约束：后端都只通过 `code-dispatcher` 调用；不要直接调用 `codex` / `claude` / `gemini` 命令。
 
+> [!NOTE]
+> 工具 `code-dispatcher` 核心思路基于 [`cexll/myclaude`](https://github.com/cexll/myclaude) 的 `codeagent wrapper`，经大量重构。
 
-## 安装（WSL2/Linux + macOS + Windows）
+### Skills
 
-默认安装方式：从 GitHub Release 的 `latest` 标签下载当前平台二进制（安装时不需要 Go）。
+注：依赖指是否依赖 code-dispatcher CLI 进行调度和执行。
+
+| 名称 | 用途 | 依赖  |
+| --- | --- | --- |
+| `code-dispatcher` | 执行器使用说明；统一 3 个后端 `codex/claude/gemini`；核心机制 `--parallel` 和 `--resume` | 必需 |
+| `dev` | 需求澄清 → 计划 → 选择后端 → 并行执行（DAG 调度） → 验证 | 必需 |
+| `wave` | 迭代式波次并行执行（host agent 每波动态拆任务 → 并行派单 → 看结果 → 下一波） | 必需 |
+| `code-council` | 多视角并行代码评审（2–3 个 AI reviewer 并行 + host agent 终审） | 必需 |
+| `github-issue-pr-flow` | 自主 Issue → PR 交付流程（分解 → 实现 → 开 PR → 处理 review → squash merge） | 可选 |
+| `pr-review-reply` | 自主处理 PR 上的 bot review（Gemini / CodeRabbit 等）→ 验证 → 修复或反驳 → 回复线程 → resolve | 可选 |
+
+### Bundles
+
+| 名称 | 用途 | 依赖 |
+| --- | --- | --- |
+| `codex-review-loop` | Claude Code 的 review loop 套件；由 `commands/`、`hooks/`、`settings.json` 组成，Stop 时触发 Codex review | 否 |
+| `harness` | Claude Code 的长任务套件；提供状态持久化、恢复、依赖调度和 SessionStart/Stop hooks | 否 |
+
+> [!NOTE]
+> 部分 bundle 并非原创，只是 move 过来方便个人管理和安装。
+> - `harness` 基于 [`cexll/myclaude`](https://github.com/cexll/myclaude) ported。
+> - `codex-review-loop` 基于 [`hamelsmu/claude-review-loop`](https://github.com/hamelsmu/claude-review-loop) adapted。
+>
+> 具体 upstream、改动范围与当前仓库适配方式见各自 bundle 目录下的 README。
+
+## 安装
+
+### Step 1: Code Dispatcher CLI 相关核心安装
+
+安装脚本做了全平台适配：WSL2/Linux + macOS + Windows。默认会从 GitHub Release 的 `latest` 标签下载当前平台二进制：
 
 ```bash
 python3 install.py
 ```
 
 可选参数：
+
 ```bash
 python3 install.py --install-dir ~/.code-dispatcher --force
 python3 install.py --skip-dispatcher
-python3 install.py --repo zhu-jl18/code-dispatcher-toolkit --release-tag latest
 ```
 
-安装器会做这些事：
+脚本会添加如下东西：
+
 - `~/.code-dispatcher/.env`：运行时唯一配置源
 - `~/.code-dispatcher/prompts/*-prompt.md`：每个后端的默认 prompt 模板（可编辑，置空则禁用注入）
-- `~/.code-dispatcher/bin/code-dispatcher`（Windows 上是 `.exe`）
+- `~/.code-dispatcher/bin/code-dispatcher`（Windows 上是 `.exe`，以此类推）
 
-不会自动做的事（必须手动）：
-- 不会自动复制 `skills/` 到你的目标 CLI root 或 project scope
-- 需要按你的目标 CLI 自行手动复制：
-  - 从本仓库 `skills/*` 里挑需要的（例如 `skills/dev`、`skills/wave`、`skills/code-dispatcher`、`skills/code-council`、`skills/github-issue-pr-flow`、`skills/pr-review-reply`、`skills/codex-review-loop`、`skills/harness`）
-- 不会自动注入 `memory/CLAUDE-add.md` 到你的用户级配置
-  - 该文件包含 `/dev` 工作流约定（Claude Code 负责规划和验证，编辑和测试必须通过 code-dispatcher skill 执行）
-  - 需要手动将其内容追加到你自己的 `~/.claude/CLAUDE.md`（Claude Code）或 `AGENTS.md`（Codex 等）中
+特别需要注意的是：不同平台下 code agent 的 shell 环境并不完全一致，不能默认都按同一套假设执行。
 
-提示：
-- 在 WSL 里运行 `install.py` 会安装 Linux 二进制；在 macOS（Apple Silicon）里运行会安装 Darwin arm64 二进制；在 Windows 里运行会安装 Windows `.exe`。
-- 需要网络访问 GitHub Release；如只想更新配置文件，使用 `--skip-dispatcher`。
-- Windows PATH 注意：不同 host agent 使用不同 shell。PowerShell/cmd 读 Windows 用户 PATH；Git Bash（如 Claude Code）需要在 `~/.bashrc` 中加 `export PATH="$HOME/.code-dispatcher/bin:$PATH"`。`install.py` 会打印两种 shell 的设置方法。
-
-## 本地构建（可选）
+`install.py` 会直接输出常见 shell 的持久化设置命令（Windows：PowerShell、CMD、Git Bash；非 Windows：Bash、Zsh、Fish），对应如下：
 
 ```bash
-bash scripts/build-dist.sh
+Windows PowerShell:
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$HOME\.code-dispatcher\bin", "User")
+
+Windows CMD:
+setx PATH "%PATH%;%USERPROFILE%\.code-dispatcher\bin"
+
+Git Bash (e.g. Claude Code on Windows):
+echo 'export PATH="$HOME/.code-dispatcher/bin:$PATH"' >> ~/.bashrc
+
+Bash (e.g. WSL/Linux):
+echo 'export PATH="$PATH:$HOME/.code-dispatcher/bin"' >> ~/.bashrc
+
+Zsh (e.g. macOS 默认):
+echo 'export PATH="$PATH:$HOME/.code-dispatcher/bin"' >> ~/.zshrc
+
+Fish:
+echo 'set -gx PATH "$HOME/.code-dispatcher/bin" $PATH' >> ~/.config/fish/config.fish
 ```
 
-本地构建产物（默认不提交到 git）：
-- `dist/code-dispatcher-linux-amd64`
-- `dist/code-dispatcher-darwin-arm64`
-- `dist/code-dispatcher-windows-amd64.exe`
+### Step 2: 安装 Code Dispatcher Skill 
 
-## Prompt 注入（默认开启）
+根据目标 code agent 工具的配置目录，复制 `code-dispatcher` 这个 skill 到相关目录。建议全局安装，下面是一些典型位置：
 
-每个后端一个 prompt 文件，安装时从仓库 `prompts/` 目录复制默认内容：
-- `~/.code-dispatcher/prompts/codex-prompt.md`
-- `~/.code-dispatcher/prompts/claude-prompt.md`
-- `~/.code-dispatcher/prompts/gemini-prompt.md`
+- General： `~/.agents/skills`
+- Claude Code : `~/.claude/skills`
+- Codex CLI : `~/.codex/skills`
+- OpenCode : `~/.config/opencode/skills`
+- Gemini CLI : `~/.gemini/skills`
 
-默认内容告诉后端：你是被 code-dispatcher 调度的 worker，这是一次 end-to-end 调用，不要中途停下，自由探索代码库获取上下文。
+### Step 3: 挑选 Skills / Bundles
 
-规则：
-- code-dispatcher 会读取对应后端的 prompt 文件；只有在内容非空时才会 prepend 到任务前面
-- 文件不存在 / 只有空白字符：等价“无注入”
-- 要自定义：直接编辑 `~/.code-dispatcher/prompts/` 下的文件，或修改仓库 `prompts/` 目录后重新运行 `install.py --force`
+接下来你可以参照 `docs/skills-and-bundles.md` 了解具体用途，挑选你需要的功能模块进行安装：
 
-运行时配置（审批/绕过、超时、并行传播规则、后端 model 指定）详见：
-- `docs/runtime-config.md`
+**Skills**：Skill 是跨 agent 通用的功能模块，核心是 `SKILL.md` 定义文件，部分还包含 `references/` 参考文档。安装时将对应的 skill 目录复制到目标 agent 的 skills 目录，以 Claude 为例：
+  - 全局：`~/.claude/skills/<skill-name>/` 
+  - 项目级：`<path to your project>/.claude/skills/<skill-name>/`
 
-可选：在 `~/.code-dispatcher/.env` 中指定后端使用的 model：
+
+其中 `dev` skill 建议配合注入 `templates/dev-skill-constraint.md` 到用户级配置。一些典型用法：
+
+**Bundles**：Bundle 是 Claude Code 专用套件，通常包含 hooks 和 settings，部分还包含 commands 或 skill 定义。安装步骤因 bundle 而异：
+  - 若包含 `commands/`：复制到 `.claude/commands/`
+  - 若包含 `hooks/`：复制到 `.claude/hooks/`，并确保脚本有执行权限
+  - 若包含 `SKILL.md`：将 `SKILL.md`（及可选的 `references/`）复制到 `.claude/skills/<bundle-name>/`
+  - 将 `settings.json` 中的 hooks 配置合并到 `.claude/settings.json` 或 `.claude/settings.local.json`
+
 ```text
-CODE_DISPATCHER_GEMINI_MODEL=gemini-2.5-pro
-CODE_DISPATCHER_CODEX_MODEL=o3
-```
-不设置则使用各 CLI 自身默认值。Claude 不支持通过 dispatcher 指定 model。
+# 显式触发
+/dev "我想实现一个xxx"
 
-## 使用
-
-开发工作流（DAG 一次性派单）：
-```text
-/dev "实现 X"
+# 特定关键词触发
+use dispatcher --codex to fix the bug we just discussed
 ```
 
-开发工作流（迭代波次并行）：
-```text
-/wave "实现 X"
-```
 
-代码评审：
-```text
-Review @src/auth/ using code-council
-```
+### 可选配置项
+
+运行时参数统一放在 `~/.code-dispatcher/.env`。可配置项包含：
+
+- 执行器超时相关参数
+- 执行器并行 worker 上限
+- 执行器日志输出设置
+- 被调用后端模型覆盖（仅 codex/gemini）
+
+完整字段含义请先看：[docs/runtime-config.md](docs/runtime-config.md)，未配置时按默认参数运行。
 
 ## 开发/测试
+
+### 先决环境
+
+- Go：`1.21`（`code-dispatcher/go.mod`）
+- Python：`3.9+`（`install.py` 使用 `list[str]`）
+- Bash：用于本地构建脚本（`scripts/build-dist.sh`）
+
+### 运行验证
 
 ```bash
 cd code-dispatcher
 go test ./...
+
+# 验证本地构建
+cd ..
+bash scripts/build-dist.sh
+
+# 验证安装脚本语法与模板引用
+python3 -m py_compile install.py
+
+# 不污染真实环境的安装回归（使用临时目录）
+tmpdir="$(mktemp -d)"
+python3 install.py --install-dir "$tmpdir/.code-dispatcher" --skip-dispatcher --force
+python3 install.py --install-dir "$tmpdir/.code-dispatcher" --force
+rm -rf "$tmpdir"
 ```
-
-## 致谢
-
-原始灵感以及部分初始代码来源 [`cexll/myclaude`](https://github.com/cexll/myclaude)，特此感谢。

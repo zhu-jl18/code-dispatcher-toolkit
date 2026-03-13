@@ -8,7 +8,7 @@
 当 harness 未曾启动时，本 hook 是完全的 no-op。
 
 配置:
-  - REFLECT_MAX_ITERATIONS 环境变量（默认 5）
+  - REFLECT_MAX_ITERATIONS 环境变量（默认 3）
   - 设为 0 可禁用
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ try:
 except ImportError:
     hc = None  # type: ignore[assignment]
 
-DEFAULT_MAX_ITERATIONS = 5
+DEFAULT_MAX_ITERATIONS = 3
 
 
 def _read_payload() -> dict[str, Any]:

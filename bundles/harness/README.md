@@ -7,6 +7,15 @@ This is the `code-dispatcher-toolkit` port of the original harness idea:
 - project hooks keep Claude from stopping too early
 - runtime state is consolidated under `.harness/`
 
+## Attribution
+
+This bundle is largely ported from [`cexll/myclaude`](https://github.com/cexll/myclaude).
+
+The relationship here is closer to a port than an adaptation:
+- the core harness protocol and recovery model are intentionally preserved
+- the main repository-specific change is consolidating runtime state under `.harness/`
+- packaging and installation notes are rewritten to fit this toolkit's bundle layout
+
 It is complementary to `code-dispatcher`, not a replacement. Use harness when the Claude host session needs durable state; use `code-dispatcher` inside harnessed tasks when you want backend workers to do the implementation or review work.
 
 ## Bundle Contents

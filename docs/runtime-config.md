@@ -1,82 +1,82 @@
-# code-dispatcher Runtime Config
+# code-dispatcher 运行时配置
 
-This document is the single source of truth for runtime behavior related to:
+该文档是运行时行为的唯一可信来源，覆盖以下内容：
 
-- timeout behavior
-- parallel-mode propagation rules
-- config loading model
+- 超时行为
+- 并行执行与 worker 限制
+- 配置加载模型
 
-## 1) Single Config Source
+## 1）单一配置来源
 
-All runtime options are loaded from:
+所有运行时选项统一从以下文件读取：
 
 ```text
 ~/.code-dispatcher/.env
 ```
 
-The dispatcher does not read these control options from shell environment variables anymore.
+`code-dispatcher` 不再从 shell 环境变量读取这些控制项。
 
-## 2) Backend Approval/Bypass
+## 2）后端审批/跳过审批设置
 
-All backends run with approval bypass hardcoded (no toggle):
+所有后端默认都使用“绕过审批”模式（不可开关）：
 
-- `codex`: `--dangerously-bypass-approvals-and-sandbox`
-- `claude`: `--dangerously-skip-permissions`
-- `gemini`: `-y`
+- `codex`：`--dangerously-bypass-approvals-and-sandbox`
+- `claude`：`--dangerously-skip-permissions`
+- `gemini`：`-y`
 
-## 3) Runtime Keys in `.env`
+## 3）`.env` 中的运行时字段
 
 - `CODE_DISPATCHER_TIMEOUT`
-  - default: `7200` (seconds, 2 hours)
-  - unit: seconds
+  - 默认：`7200`（秒，2 小时）
+  - 单位：秒
 
 - `CODE_DISPATCHER_MAX_PARALLEL_WORKERS`
-  - default: unlimited (`0`)
-  - recommended: `8`
-  - hard cap in dispatcher: `100`
+  - 默认：不限制（`0`）
+  - 建议：`8`
+  - 调度器硬上限：`100`
 
 - `CODE_DISPATCHER_ASCII_MODE`
-  - `true` => ASCII status (`PASS/WARN/FAIL`)
-  - otherwise => Unicode status symbols
+  - `true`：使用 ASCII 状态码（`PASS/WARN/FAIL`）
+  - 其他：使用 Unicode 状态符号
 
 - `CODE_DISPATCHER_LOGGER_CLOSE_TIMEOUT_MS`
-  - default: `5000`
-  - `0` => wait indefinitely
+  - 默认：`5000`
+  - `0`：表示无限等待
 
-### Backend Model Override
+### 后端模型覆盖
 
 - `CODE_DISPATCHER_GEMINI_MODEL`
-  - optional; if set, passes `-m <value>` to gemini CLI
-  - example: `gemini-2.5-pro`
+  - 可选；若设置，则向 gemini CLI 透传 `-m <value>`
+  - 示例：`gemini-2.5-pro`
 
 - `CODE_DISPATCHER_CODEX_MODEL`
-  - optional; if set, passes `-m <value>` to codex CLI
-  - example: `o3`
+  - 可选；若设置，则向 codex CLI 透传 `-m <value>`
+  - 示例：`gpt-5.4`
 
-- **Claude:** model override via dispatcher is not supported.
+- Claude 不支持通过 dispatcher 覆盖模型。
 
-### Prompt Files
+## 4）提示词文件
 
-Prompt files are resolved from:
+提示词文件来自：
 
 ```text
 ~/.code-dispatcher/prompts/<backend>-prompt.md
 ```
 
-Supported backends: `codex`, `claude`, `gemini`.
+支持的后端：`codex`、`claude`、`gemini`。
 
-## 4) Timeout Layering (Important)
+## 5）超时分层（重要）
 
-There are usually two timeout layers:
+通常存在两层超时机制：
 
-- outer caller timeout (e.g., tool invocation timeout)
-- dispatcher timeout (`CODE_DISPATCHER_TIMEOUT` from `.env`)
+- 外层调用超时（例如工具调用超时）
+- dispatcher 超时（来自 `.env` 的 `CODE_DISPATCHER_TIMEOUT`）
 
-Effective timeout is whichever triggers first.
+实际生效超时为率先触发的那一个。
 
-## 5) Editing Config
+## 6）编辑配置
 
-Edit the file directly:
+直接编辑 `.env` 文件即可：
 
 ```bash
 ${EDITOR:-vi} ~/.code-dispatcher/.env

@@ -753,12 +753,12 @@ class TestSelfReflectStopHook(unittest.TestCase):
         # First call: iteration 1
         code, stdout, _ = run_hook(REFLECT_HOOK, self._payload(session_id=sid))
         data = json.loads(stdout)
-        self.assertIn("1/5", data["reason"])
+        self.assertIn("1/3", data["reason"])
 
         # Second call: iteration 2
         code, stdout, _ = run_hook(REFLECT_HOOK, self._payload(session_id=sid))
         data = json.loads(stdout)
-        self.assertIn("2/5", data["reason"])
+        self.assertIn("2/3", data["reason"])
 
     def test_max_iterations_allows_stop_and_cleans_marker(self):
         """After max iterations, hook allows stop and removes .harness/reflect."""
@@ -769,7 +769,7 @@ class TestSelfReflectStopHook(unittest.TestCase):
 
         # Write counter at max
         counter_path = Path(tempfile.gettempdir()) / f"claude-reflect-{sid}"
-        counter_path.write_text("5", encoding="utf-8")
+        counter_path.write_text("3", encoding="utf-8")
 
         code, stdout, _ = run_hook(REFLECT_HOOK, self._payload(session_id=sid))
         self.assertEqual(code, 0)

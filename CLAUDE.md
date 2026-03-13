@@ -1,7 +1,7 @@
 # code-dispatcher Project Instructions
 
 ## Project Summary
-code-dispatcher is a multi-backend AI coding toolkit: a Go CLI that dispatches tasks to `codex`/`claude`/`gemini` backends, paired with orchestration skills for structured development workflows — planning + parallel execution, iterative wave execution, multi-reviewer code review, issue-to-PR delivery, and bot-review triage.
+code-dispatcher is a multi-backend AI coding toolkit: a Go CLI that dispatches tasks to `codex`/`claude`/`gemini` backends, paired with reusable Skills and Bundles for structured workflows such as planning, parallel execution, iterative waves, multi-reviewer code review, issue-to-PR delivery, bot-review triage, and long-running task orchestration.
 
 ## Tech Stack
 - Go: main dispatcher program
@@ -10,7 +10,10 @@ code-dispatcher is a multi-backend AI coding toolkit: a Go CLI that dispatches t
 
 ## Repository Structure
 - `code-dispatcher/`: Go source (main package and backend dispatch logic)
-- `skills/`: independent modules — skills (`dev`, `wave`, `code-dispatcher`, `code-council`, `github-issue-pr-flow`, `pr-review-reply`) and extensions (`codex-review-loop`)
+- `skills/`: reusable modules
+- `bundles/`: packaged Claude Code assets such as `commands/`, `hooks/`, `settings`, and supporting docs
+- Skills: `dev`, `wave`, `code-dispatcher`, `code-council`, `github-issue-pr-flow`, `pr-review-reply`
+- Bundles: `codex-review-loop`, `harness`
 - `docs/`: documentation (`runtime-config.md`)
 - `scripts/`: build scripts (`build-dist.sh`)
 - `install.py` / `uninstall.py`: installer and uninstaller

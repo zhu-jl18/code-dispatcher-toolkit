@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# E2E test: 100 harness tasks + 5 self-reflection iterations via claude -p
+# E2E test: 100 harness tasks + 3 self-reflection iterations via claude -p
 # Usage: bash e2e-100tasks.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(mktemp -d /tmp/harness-e2e-XXXXXX)"
 LOG_FILE="${PROJECT_DIR}/test-output.log"
 
-echo "=== Harness E2E Test: 100 tasks + 5 self-reflect ==="
+echo "=== Harness E2E Test: 100 tasks + 3 self-reflect ==="
 echo "Project dir: ${PROJECT_DIR}"
 echo ""
 
@@ -48,7 +48,7 @@ state = {
         "concurrency_mode": "exclusive",
         "max_tasks_per_session": 100,
         "max_sessions": 50,
-        "max_reflect_iterations": 5
+        "max_reflect_iterations": 3
     },
     "tasks": tasks,
     "session_count": 0,
@@ -88,7 +88,7 @@ Execute the harness infinite loop protocol:
 2. Pick next eligible task by priority
 3. For each task: create the file with the required content, run validation, mark completed
 4. Continue until all tasks are done
-5. After completion, the self-reflect stop hook will trigger 5 times — complete those iterations
+5. After completion, the self-reflect stop hook will trigger 3 times — complete those iterations
 
 IMPORTANT: Do NOT use any skill tools. Just directly create files and update harness state.
 For efficiency, you can batch multiple file creations in a single command.
@@ -102,7 +102,7 @@ START_TIME=$(date +%s)
 
 cd "${PROJECT_DIR}"
 unset CLAUDECODE
-REFLECT_MAX_ITERATIONS=5 \
+REFLECT_MAX_ITERATIONS=3 \
 HARNESS_STATE_ROOT="${PROJECT_DIR}" \
 claude -p "${PROMPT}" \
   --model sonnet \

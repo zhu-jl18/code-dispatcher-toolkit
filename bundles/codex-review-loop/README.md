@@ -5,6 +5,15 @@
 - Claude `stop` 时，Stop hook 调用 Codex 做独立多视角 review（Diff + Holistic + 条件分支）
 - 生成 review 后 Claude 继续处理，再次 stop 才退出
 
+## 来源说明
+
+本 bundle 基于 [`hamelsmu/claude-review-loop`](https://github.com/hamelsmu/claude-review-loop) 改造而来。
+
+当前仓库中的主要调整：
+- 从 upstream 的插件分发结构中抽出 `commands/`、`hooks/`、`settings.json` 这一套可直接复用的 bundle 形态
+- 将命令命名改为 `/codex-review-loop` 与 `/cancel-codex-review-loop`，避免与其他通用 review-loop 命令冲突
+- 安装与文档说明改为贴合 `code-dispatcher-toolkit` 的 bundle 组织方式，而不是直接沿用 upstream 插件安装流程
+
 ## 模板内容
 
 - `settings.json`：注册 Stop hook

@@ -26,9 +26,10 @@ from pathlib import Path
 
 
 DEFAULT_INSTALL_DIR = "~/.code-dispatcher"
-DEFAULT_RELEASE_REPO = "zhu-jl18/code-dispatcher-toolkit"
-DEFAULT_RELEASE_TAG = "latest"
+RELEASE_REPO = "zhu-jl18/code-dispatcher-toolkit"
+RELEASE_TAG = "latest"
 HTTP_TIMEOUT_SEC = 30
+ENV_TEMPLATE = Path(__file__).resolve().parent / "templates" / "runtime-config.env"
 
 BACKENDS = ("codex", "claude", "gemini")
 
@@ -49,16 +50,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--skip-dispatcher",
         action="store_true",
         help="Skip installing code-dispatcher binary (only install runtime config/assets)",
-    )
-    p.add_argument(
-        "--repo",
-        default=DEFAULT_RELEASE_REPO,
-        help=f"GitHub repo for release assets (default: {DEFAULT_RELEASE_REPO})",
-    )
-    p.add_argument(
-        "--release-tag",
-        default=DEFAULT_RELEASE_TAG,
-        help=f"Release tag to install (default: {DEFAULT_RELEASE_TAG})",
     )
     return p.parse_args(argv)
 
@@ -90,18 +81,13 @@ def _install_prompts(install_dir: Path, *, force: bool) -> None:
 
 
 def _install_env_template(install_dir: Path, *, force: bool) -> None:
-    env_template = (
-        "# code-dispatcher runtime config\n"
-        "# Values are loaded only from this file.\n\n"
-        "# CODE_DISPATCHER_TIMEOUT in seconds (default: 7200)\n"
-        "CODE_DISPATCHER_TIMEOUT=7200\n\n"
-        "CODE_DISPATCHER_ASCII_MODE=false\n"
-        "CODE_DISPATCHER_MAX_PARALLEL_WORKERS=0\n"
-        "CODE_DISPATCHER_LOGGER_CLOSE_TIMEOUT_MS=5000\n\n"
-        "# Backend model override (optional, leave empty to use CLI defaults)\n"
-        "# CODE_DISPATCHER_GEMINI_MODEL=\n"
-        "# CODE_DISPATCHER_CODEX_MODEL=\n"
-    )
+    try:
+        env_template = ENV_TEMPLATE.read_text(encoding="utf-8")
+    except FileNotFoundError as e:
+        raise RuntimeError(f"required env template not found: {ENV_TEMPLATE}") from e
+    except OSError as e:
+        raise RuntimeError(f"failed to read env template {ENV_TEMPLATE}: {e}") from e
+
     _write_if_missing(install_dir / ".env", env_template, force=force)
 
 
@@ -195,7 +181,7 @@ def _download_to_path(url: str, out: Path) -> None:
             tmp.unlink(missing_ok=True)
 
 
-def _install_router_from_release(install_dir: Path, *, repo: str, tag: str, force: bool) -> Path:
+def _install_router_from_release(install_dir: Path, *, force: bool) -> Path:
     bin_dir = install_dir / "bin"
     _ensure_dir(bin_dir)
     exe_name = "code-dispatcher.exe" if os.name == "nt" else "code-dispatcher"
@@ -205,7 +191,7 @@ def _install_router_from_release(install_dir: Path, *, repo: str, tag: str, forc
         return out
 
     asset_name = _get_artifact_name()
-    release = _load_release_metadata(repo, tag)
+    release = _load_release_metadata(RELEASE_REPO, RELEASE_TAG)
     download_url = _resolve_asset_download_url(release, asset_name)
     _download_to_path(download_url, out)
 
@@ -217,52 +203,29 @@ def _install_router_from_release(install_dir: Path, *, repo: str, tag: str, forc
     return out
 
 
-def _get_shell_config_path() -> str | None:
-    """Detect shell type and return config file path."""
-    shell = os.environ.get("SHELL", "")
-    home = Path.home()
-
-    if "zsh" in shell:
-        return str(home / ".zshrc")
-    elif "bash" in shell:
-        # macOS uses .bash_profile, Linux uses .bashrc
-        if sys.platform == "darwin":
-            return str(home / ".bash_profile")
-        return str(home / ".bashrc")
-    elif "fish" in shell:
-        return str(home / ".config" / "fish" / "config.fish")
-    return None
-
-
 def _print_path_hint(bin_path: Path) -> None:
     """Print PATH setup instructions based on platform and shell."""
     print("")
     print("PATH setup:")
 
     if os.name == "nt":
-        # Windows — different host agents use different shells
-        print("  PowerShell / cmd (e.g. Warp, native terminals):")
-        print(f'  [Environment]::SetEnvironmentVariable("Path", $env:Path + ";{bin_path}", "User")')
+        print("  Windows PowerShell (current user env):")
+        print(f'  [Environment]::SetEnvironmentVariable("Path", $env:Path + ";{bin_path.as_posix()}", "User")')
+        print("")
+        print("  Windows CMD (current user env):")
+        print(f'  setx PATH "%PATH%;{bin_path}"')
         print("")
         print("  Git Bash (e.g. Claude Code on Windows):")
         print(f'  echo \'export PATH="{bin_path.as_posix()}:$PATH"\' >> ~/.bashrc')
     else:
-        # Linux / macOS
-        shell_config = _get_shell_config_path()
-        shell = os.environ.get("SHELL", "").split("/")[-1] or "sh"
-
-        if "fish" in shell:
-            export_cmd = f'set -gx PATH $PATH "{bin_path}"'
-        else:
-            export_cmd = f'export PATH="$PATH:{bin_path}"'
-
-        print(f"  {export_cmd}")
+        print("  Bash (for ~/.bashrc):")
+        print(f'  echo \'export PATH="$PATH:{bin_path}"\' >> ~/.bashrc')
         print("")
-        if shell_config:
-            print(f"  To persist, add to {shell_config}:")
-            print(f"  echo '{export_cmd}' >> {shell_config}")
-        else:
-            print("  Add the export command to your shell config file to persist.")
+        print("  Zsh (for ~/.zshrc):")
+        print(f'  echo \'export PATH="$PATH:{bin_path}"\' >> ~/.zshrc')
+        print("")
+        print("  Fish:")
+        print(f'  echo \'set -gx PATH "{bin_path}" $PATH\' >> ~/.config/fish/config.fish')
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -272,15 +235,17 @@ def main(argv: list[str] | None = None) -> int:
     _ensure_dir(install_dir)
 
     _install_prompts(install_dir, force=args.force)
-    _install_env_template(install_dir, force=args.force)
+    try:
+        _install_env_template(install_dir, force=args.force)
+    except RuntimeError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
 
     router_path: Path | None = None
     if not args.skip_dispatcher:
         try:
             router_path = _install_router_from_release(
                 install_dir,
-                repo=args.repo,
-                tag=args.release_tag,
                 force=args.force,
             )
         except (FileNotFoundError, RuntimeError) as e:
@@ -292,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"- env:      {install_dir / '.env'}")
     print(f"- prompts:  {install_dir / 'prompts'} (*-prompt.md default templates)")
     if router_path is not None:
-        print(f"- binary:   {router_path} (downloaded from GitHub release {args.repo}@{args.release_tag})")
+        print(f"- binary:   {router_path} (downloaded from GitHub release {RELEASE_REPO}@{RELEASE_TAG})")
 
     print("")
     print("Manual setup required:")
